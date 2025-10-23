@@ -1,0 +1,16 @@
+/* Farbpalette (Light/Dark) als CSS-Variablen */
+:root {
+  --color-bg: 255 255 255;
+  --color-fg: 17 24 39; /* slate-900 */
+  --color-muted: 100 116 139; /* slate-500 */
+  --color-border: 226 232 240; /* slate-200 */
+  --color-primary: 37 99 235; /* blue-600 */
+}
+
+.dark {
+  --color-bg: 17 24 39; /* slate-900 */
+  --color-fg: 241 245 249; /* slate-100 */
+  --color-muted: 148 163 184; /* slate-400 */
+  --color-border: 51 65 85; /* slate-700 */
+  --color-primary: 59 130 246; /* blue-500 */
+}

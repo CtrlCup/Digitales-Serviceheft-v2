@@ -1,0 +1,79 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/../src/bootstrap.php';
+
+$errors = [];
+$success = false;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!csrf_validate($_POST['csrf'] ?? '')) {
+        $errors[] = t('csrf_invalid');
+    } else {
+        $name = trim($_POST['name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $password_confirm = $_POST['password_confirm'] ?? '';
+
+        if ($password !== $password_confirm) {
+            $errors[] = t('password_mismatch');
+        }
+        if (!$errors) {
+            try {
+                register_user($name, $email, $password);
+                authenticate($email, $password);
+                header('Location: /dashboard.php');
+                exit;
+            } catch (Throwable $e) {
+                $errors[] = t('register_failed');
+            }
+        }
+    }
+}
+?><!doctype html>
+<html lang="<?= htmlspecialchars(APP_LOCALE) ?>" class="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><?= e(t('register_title')) ?> - <?= e(APP_NAME) ?></title>
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <script defer src="/assets/js/theme.js"></script>
+</head>
+<body>
+<header class="container py-2 flex space-between">
+  <h1><?= e(APP_NAME) ?></h1>
+  <button id="theme-toggle" class="btn-secondary"><?= e(t('toggle_theme')) ?></button>
+</header>
+<main class="container">
+  <h2><?= e(t('register_title')) ?></h2>
+  <?php if ($errors): ?>
+    <div class="alert">
+      <?php foreach ($errors as $err): ?>
+        <div><?= e($err) ?></div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+  <form method="post" class="card">
+    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+    <label>
+      <span><?= e(t('name')) ?></span>
+      <input type="text" name="name" required autocomplete="name">
+    </label>
+    <label>
+      <span><?= e(t('email')) ?></span>
+      <input type="email" name="email" required autocomplete="email">
+    </label>
+    <label>
+      <span><?= e(t('password')) ?></span>
+      <input type="password" name="password" required autocomplete="new-password">
+    </label>
+    <label>
+      <span><?= e(t('password_confirm')) ?></span>
+      <input type="password" name="password_confirm" required autocomplete="new-password">
+    </label>
+    <button type="submit" class="btn-primary"><?= e(t('register_button')) ?></button>
+  </form>
+  <p class="mt-2">
+    <a href="/login.php"><?= e(t('to_login')) ?></a>
+  </p>
+</main>
+</body>
+</html>
