@@ -1,0 +1,28 @@
+# Sensitive app config
+/src/config.php
+/.env
+/.env.local
+/.env.*.local
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs and dumps
+*.log
+logs/
+*.sql
+sql/*.dump
+!/sql/schema.sql
+
+# Runtime/cache (if added later)
+storage/
+cache/
+sessions/
+
+# Dependencies (not needed in this plain-PHP project)
+/vendor/
+/node_modules/
+
+# Build artifacts (if any added later)
+public/build/
