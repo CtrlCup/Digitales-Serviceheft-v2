@@ -12,7 +12,7 @@ if (($_GET['confirm'] ?? '') !== '1') {
 
 $email = trim($_GET['email'] ?? ADMIN_EMAIL); // Standard: ADMIN_EMAIL aus config.php
 $username = trim($_GET['username'] ?? (explode('@', $email)[0] ?: 'admin'));
-$password = (string)($_GET['pw'] ?? 'Bitte-ändern-123!');
+$password = (string)($_GET['pw'] ?? 'Change-Me');
 $name = trim($_GET['name'] ?? 'Admin');
 $role = in_array(($_GET['role'] ?? 'admin'), ['admin','user'], true) ? $_GET['role'] : 'admin';
 $locale = trim($_GET['locale'] ?? (defined('APP_LOCALE') ? APP_LOCALE : 'de'));

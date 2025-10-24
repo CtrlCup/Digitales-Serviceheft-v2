@@ -9,6 +9,7 @@ $user = current_user();
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= e(t('dashboard_title')) ?> - <?= e(APP_NAME) ?></title>
+  <link rel="icon" type="image/svg+xml" href="assets/files/favicon.svg">
   <link rel="stylesheet" href="assets/css/app.css">
   <script defer src="assets/js/theme.js"></script>
 </head>
@@ -26,7 +27,7 @@ $user = current_user();
 
       <div class="card">
         <h2 style="margin:0;"><?= e(t('welcome')) ?>, <?= e($user['username'] ?? ($user['name'] ?? ($user['email'] ?? 'User'))) ?></h2>
-        <p style="margin:0;"><?= e(t('dashboard_intro')) ?></p>
+        <p style="margin:0;">&nbsp;<?= e(t('dashboard_intro')) ?></p>
       </div>
     </div>
   </main>

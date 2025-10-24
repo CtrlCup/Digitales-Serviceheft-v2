@@ -2,6 +2,11 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../src/bootstrap.php';
 
+if (defined('ALLOW_REGISTRATION') && ALLOW_REGISTRATION === false) {
+    header('Location: /login.php');
+    exit;
+}
+
 $errors = [];
 $success = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -35,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= e(t('register_title')) ?> - <?= e(APP_NAME) ?></title>
+  <link rel="icon" type="image/svg+xml" href="assets/files/favicon.svg">
   <link rel="stylesheet" href="assets/css/app.css">
   <script defer src="assets/js/theme.js"></script>
 </head>

@@ -37,20 +37,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= e(t('account_title')) ?> - <?= e(APP_NAME) ?></title>
-  <link rel="stylesheet" href="assets/css/app.css">
-  <script defer src="assets/js/theme.js"></script>
+  <?php render_common_head_links(); ?>
 </head>
 <body class="page">
   <main class="center">
-    <div class="container">
-      <div class="brand">
-        <h1><?= e(APP_NAME) ?></h1>
-        <div class="flex gap-2" style="justify-content:center;">
-          <a class="btn-secondary" href="dashboard.php">← <?= e(t('dashboard_title')) ?></a>
-          <a class="btn-secondary" href="logout.php"><?= e(t('logout')) ?></a>
-          <button id="theme-toggle" class="btn-secondary"><?= e(t('toggle_theme')) ?></button>
-        </div>
-      </div>
+    <div class="container reveal-enter">
+      <?php render_brand_header([
+        ['label' => '← ' . t('dashboard_title'), 'href' => 'dashboard.php'],
+        ['label' => t('logout'), 'href' => 'logout.php'],
+      ]); ?>
 
       <?php if ($errors): ?>
         <div class="alert" style="margin-bottom:1rem;">

@@ -85,5 +85,52 @@ https://<deine-domain>/create_admin.php?confirm=1&name=Alex&username=alex
 - Konto: `account.php` für Benutzername/E-Mail ändern und Passwortwechsel.
 - Zukünftig: 2FA (TOTP) und Passkeys (WebAuthn) sind im Schema vorbereitet und können später implementiert werden.
 
+## Auth/Lockout Konfiguration
+In `src/config.php` können folgende Variablen gesetzt werden (Vorlage siehe `src/config.example.php`):
+```php
+// Maximale Anzahl an Fehlversuchen, bevor eine temporäre Sperre greift
+const LOGIN_MAX_FAILED_ATTEMPTS = 5;
+// Dauer der Sperre in Minuten
+const LOGIN_LOCKOUT_MINUTES = 10;
+// Falls true, wird failed_logins beim Setzen der Sperre sofort zurückgesetzt,
+// ansonsten erst bei erfolgreichem Login
+const LOGIN_RESET_ON_LOCK = false;
+```
+
+## Administration: Benutzer entsperren (SQL)
+Bei Bedarf kann eine Sperre manuell aufgehoben werden. Beispiele:
+
+- Entsperren per E-Mail:
+```sql
+UPDATE users
+SET failed_logins = 0,
+    locked_until = NULL,
+    updated_at = NOW()
+WHERE email = 'user@example.com';
+```
+
+- Entsperren per Benutzer-ID:
+```sql
+UPDATE users
+SET failed_logins = 0,
+    locked_until = NULL,
+    updated_at = NOW()
+WHERE id = 123;
+```
+
+- Status prüfen:
+```sql
+SELECT id, email, failed_logins, locked_until, last_login_at, last_login_ip
+FROM users
+WHERE email = 'user@example.com';
+```
+
+- Optional: Login-Audit einsehen/aufräumen:
+```sql
+SELECT * FROM login_audit WHERE user_id = 123 ORDER BY created_at DESC LIMIT 50;
+-- Aufräumen älterer Einträge (Beispiel: älter als 90 Tage)
+DELETE FROM login_audit WHERE created_at < (NOW() - INTERVAL 90 DAY);
+```
+
 ## Lizenz
 Dieses Projekt ist ein Beispiel/Starter. Lizenz nach Wunsch ergänzen.

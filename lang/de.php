@@ -21,6 +21,7 @@ return [
     'logout' => 'Abmelden',
 
     'login_failed' => 'Anmeldung fehlgeschlagen. Bitte E-Mail/Passwort prüfen.',
+    'account_locked_wait' => 'Zu viele fehlgeschlagene Anmeldeversuche. Bitte warte noch %s, bevor du es erneut versuchst.',
     'register_failed' => 'Registrierung fehlgeschlagen. E-Mail ggf. bereits vergeben.',
     'password_mismatch' => 'Die Passwörter stimmen nicht überein.',
     'csrf_invalid' => 'Ungültiger Sicherheits-Token. Bitte erneut versuchen.',

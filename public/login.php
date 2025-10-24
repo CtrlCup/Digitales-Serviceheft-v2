@@ -9,11 +9,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $identifier = trim($_POST['identifier'] ?? '');
         $password = $_POST['password'] ?? '';
-        if (authenticate($identifier, $password)) {
+        [$ok, $err] = authenticate_with_lockout($identifier, $password);
+        if ($ok) {
             header('Location: /dashboard.php');
             exit;
         }
-        $errors[] = t('login_failed');
+        $errors[] = $err ?: t('login_failed');
     }
 }
 ?><!doctype html>
@@ -55,9 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit" class="btn-primary"><?= e(t('login_button')) ?></button>
       </form>
 
-      <p class="mt-2" style="text-align:center;">
-        <a class="link" href="register.php"><?= e(t('to_register')) ?></a>
-      </p>
+      <?php if (defined('ALLOW_REGISTRATION') ? ALLOW_REGISTRATION : true): ?>
+        <p class="mt-2" style="text-align:center;">
+          <a class="link" href="register.php"><?= e(t('to_register')) ?></a>
+        </p>
+      <?php endif; ?>
     </div>
   </main>
 </body>

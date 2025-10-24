@@ -41,6 +41,104 @@ function register_user(string $name, string $username, string $email, string $pa
     $stmt->execute([$name ?: $username, $username, $email, $hash, $role]);
 }
 
+function authenticate_with_lockout(string $identifier, string $password): array {
+    // Returns [bool success, ?string errorMessage]
+    $pdo = db();
+    $maxAttempts = defined('LOGIN_MAX_FAILED_ATTEMPTS') ? (int)LOGIN_MAX_FAILED_ATTEMPTS : 5;
+    $lockMinutes = defined('LOGIN_LOCKOUT_MINUTES') ? (int)LOGIN_LOCKOUT_MINUTES : 10;
+
+    $stmt = $pdo->prepare('SELECT id, password, failed_logins, locked_until FROM users WHERE email = ? OR username = ? LIMIT 1');
+    $stmt->execute([$identifier, $identifier]);
+    $user = $stmt->fetch();
+
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $agent = substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 512);
+
+    $now = new DateTimeImmutable('now');
+
+    // Helper to log audit rows (works even for unknown user)
+    $logAudit = function (?int $userId, bool $success) use ($pdo, $ip, $agent): void {
+        try {
+            $s = $pdo->prepare('INSERT INTO login_audit (user_id, ip, user_agent, success, created_at) VALUES (?, ?, ?, ?, NOW())');
+            $s->execute([$userId, $ip, $agent, $success ? 1 : 0]);
+        } catch (Throwable $e) {
+            // swallow to not block login on audit errors
+        }
+    };
+
+    if (!$user) {
+        // Unknown user: generic failure, still audit without user_id
+        $logAudit(null, false);
+        return [false, t('login_failed')];
+    }
+
+    $userId = (int)$user['id'];
+    // Check lockout first
+    if (!empty($user['locked_until'])) {
+        try {
+            $lockedUntil = new DateTimeImmutable($user['locked_until']);
+            if ($lockedUntil > $now) {
+                $remaining = $lockedUntil->getTimestamp() - $now->getTimestamp();
+                $formatted = format_duration_compact($remaining);
+                $logAudit($userId, false);
+                return [false, sprintf(t('account_locked_wait'), $formatted)];
+            }
+        } catch (Throwable $e) {
+            // if parse fails, ignore lock and continue
+        }
+    }
+
+    // Verify password
+    $ok = password_verify($password, (string)$user['password']);
+    if ($ok) {
+        // success: reset counters, set last login info, set session
+        $_SESSION['user_id'] = $userId;
+        $device = $agent !== '' ? $agent : null;
+        $upd = $pdo->prepare('UPDATE users SET failed_logins = 0, locked_until = NULL, last_login_at = NOW(), last_login_ip = ?, last_login_device = ?, updated_at = NOW() WHERE id = ?');
+        $upd->execute([$ip, $device, $userId]);
+        $logAudit($userId, true);
+        return [true, null];
+    }
+
+    // failure: increment failed_logins and maybe lock
+    $failed = (int)($user['failed_logins'] ?? 0);
+    $failed++;
+    $lockedUntilSql = null;
+    $error = t('login_failed');
+    if ($failed >= max(1, $maxAttempts)) {
+        $lockSeconds = max(60, $lockMinutes * 60);
+        $until = $now->modify('+' . $lockSeconds . ' seconds');
+        $lockedUntilSql = $until->format('Y-m-d H:i:s');
+        $error = sprintf(t('account_locked_wait'), format_duration_compact($lockSeconds));
+    }
+    if ($lockedUntilSql) {
+        if (defined('LOGIN_RESET_ON_LOCK') && LOGIN_RESET_ON_LOCK) {
+            $upd = $pdo->prepare('UPDATE users SET failed_logins = 0, locked_until = ?, updated_at = NOW() WHERE id = ?');
+            $upd->execute([$lockedUntilSql, $userId]);
+        } else {
+            $upd = $pdo->prepare('UPDATE users SET failed_logins = ?, locked_until = ?, updated_at = NOW() WHERE id = ?');
+            $upd->execute([$failed, $lockedUntilSql, $userId]);
+        }
+    } else {
+        $upd = $pdo->prepare('UPDATE users SET failed_logins = ?, updated_at = NOW() WHERE id = ?');
+        $upd->execute([$failed, $userId]);
+    }
+    $logAudit($userId, false);
+    return [false, $error];
+}
+
+function format_duration_compact(int $seconds): string {
+    if ($seconds < 0) $seconds = 0;
+    $m = intdiv($seconds, 60);
+    $s = $seconds % 60;
+    if ($m > 0 && $s > 0) {
+        return $m . 'm ' . $s . 's';
+    } elseif ($m > 0) {
+        return $m . 'm';
+    }
+    return $s . 's';
+}
+
 function authenticate(string $identifier, string $password): bool {
     $pdo = db();
     // allow login by email OR username

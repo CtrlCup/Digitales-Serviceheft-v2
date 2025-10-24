@@ -21,6 +21,7 @@ return [
     'logout' => 'Sign out',
 
     'login_failed' => 'Login failed. Please check your email/password.',
+    'account_locked_wait' => 'Too many failed login attempts. Please wait %s before trying again.',
     'register_failed' => 'Registration failed. Email may already be taken.',
     'password_mismatch' => 'Passwords do not match.',
     'csrf_invalid' => 'Invalid security token. Please try again.',
