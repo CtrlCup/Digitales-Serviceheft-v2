@@ -14,9 +14,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             if (isset($_POST['action']) && $_POST['action'] === 'profile') {
+                $name = trim($_POST['name'] ?? '');
                 $username = trim($_POST['username'] ?? '');
                 $email = trim($_POST['email'] ?? '');
-                update_profile((int)$user['id'], $username, $email);
+                update_profile((int)$user['id'], $name, $username, $email);
                 $profile_message = t('profile_saved');
                 $user = current_user(); // reload
             } elseif (isset($_POST['action']) && $_POST['action'] === 'password') {
@@ -36,29 +37,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= e(t('account_title')) ?> - <?= e(APP_NAME) ?></title>
+  <title><?= e(t('page_title_account')) ?> - <?= e(APP_NAME) ?></title>
   <?php render_common_head_links(); ?>
 </head>
 <body class="page">
-  <main class="center">
+  <?php render_brand_header([
+    'links' => [
+      ['label' => t('dashboard_title'), 'href' => '/', 'icon' => 'home'],
+      ['label' => t('account_link'), 'href' => '/account/', 'icon' => 'user', 'text' => $user['username'] ?? ''],
+      ['label' => t('logout'), 'href' => '/logout.php', 'icon' => 'logout']
+    ]
+  ]); ?>
+  <main class="page-content">
     <div class="container reveal-enter">
-      <?php render_brand_header([
-        ['label' => '← ' . t('dashboard_title'), 'href' => 'dashboard.php'],
-        ['label' => t('logout'), 'href' => 'logout.php'],
-      ]); ?>
 
       <?php if ($errors): ?>
-        <div class="alert" style="margin-bottom:1rem;">
+        <div class="alert">
           <?php foreach ($errors as $err): ?>
             <div><?= e($err) ?></div>
           <?php endforeach; ?>
         </div>
       <?php endif; ?>
 
-      <form method="post" class="card" style="margin-bottom:1rem;">
-        <h2 style="margin:0;"><?= e(t('profile_section')) ?></h2>
+      <form method="post" class="card" style="margin-bottom:1.5rem;">
+        <h2 class="card-title"><?= e(t('profile_section')) ?></h2>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="profile">
+        <label>
+          <span><?= e(t('name')) ?></span>
+          <input type="text" name="name" value="<?= e($user['name'] ?? '') ?>" required autocomplete="name">
+        </label>
         <label>
           <span><?= e(t('username')) ?></span>
           <input type="text" name="username" value="<?= e($user['username'] ?? '') ?>" required autocomplete="username">
@@ -69,14 +77,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </label>
         <button type="submit" class="btn-primary"><?= e(t('save_profile')) ?></button>
         <?php if ($profile_message): ?>
-          <div class="alert" style="margin-top:.5rem;">
+          <div class="alert success-message mt-1">
             <?= e($profile_message) ?>
           </div>
         <?php endif; ?>
       </form>
 
       <form method="post" class="card">
-        <h2 style="margin:0;"><?= e(t('password_section')) ?></h2>
+        <h2 class="card-title"><?= e(t('password_section')) ?></h2>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="password">
         <label>
@@ -93,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </label>
         <button type="submit" class="btn-primary"><?= e(t('save_password')) ?></button>
         <?php if ($password_message): ?>
-          <div class="alert" style="margin-top:.5rem;">
+          <div class="alert success-message mt-1">
             <?= e($password_message) ?>
           </div>
         <?php endif; ?>

@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = $_POST['password'] ?? '';
         [$ok, $err] = authenticate_with_lockout($identifier, $password);
         if ($ok) {
-            header('Location: /dashboard.php');
+            header('Location: /');
             exit;
         }
         $errors[] = $err ?: t('login_failed');
@@ -22,20 +22,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= e(t('login_title')) ?> - <?= e(APP_NAME) ?></title>
-  <link rel="stylesheet" href="assets/css/app.css">
-  <script defer src="assets/js/theme.js"></script>
+  <title><?= e(t('page_title_login')) ?> - <?= e(APP_NAME) ?></title>
+  <?php render_common_head_links(); ?>
+  
 </head>
 <body class="page">
-  <main class="center">
-    <div class="container">
-      <div class="brand">
-        <h1><?= e(APP_NAME) ?></h1>
-        <button id="theme-toggle" class="btn-secondary" style="margin-top:.5rem;"><?= e(t('toggle_theme')) ?></button>
-      </div>
+  <?php 
+    $cta = (defined('ALLOW_REGISTRATION') ? ALLOW_REGISTRATION : true)
+      ? ['label' => t('register_button'), 'href' => '/register/']
+      : null;
+    render_brand_header(['cta' => $cta]);
+  ?>
+  <main class="page-content">
+    <div class="container reveal-enter">
 
       <?php if ($errors): ?>
-        <div class="alert" style="margin-bottom:1rem;">
+        <div class="alert">
           <?php foreach ($errors as $err): ?>
             <div><?= e($err) ?></div>
           <?php endforeach; ?>
@@ -43,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
 
       <form method="post" class="card">
-        <h2 style="margin:0;"><?= e(t('login_title')) ?></h2>
+        <h2 class="card-title"><?= e(t('login_title')) ?></h2>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <label>
           <span><?= e(t('identifier')) ?></span>
@@ -56,11 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit" class="btn-primary"><?= e(t('login_button')) ?></button>
       </form>
 
-      <?php if (defined('ALLOW_REGISTRATION') ? ALLOW_REGISTRATION : true): ?>
-        <p class="mt-2" style="text-align:center;">
-          <a class="link" href="register.php"><?= e(t('to_register')) ?></a>
-        </p>
-      <?php endif; ?>
     </div>
   </main>
 </body>

@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../src/bootstrap.php';
 
 if (defined('ALLOW_REGISTRATION') && ALLOW_REGISTRATION === false) {
-    header('Location: /login.php');
+    header('Location: /login/');
     exit;
 }
 
@@ -24,12 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (!$errors) {
             try {
-                register_user($name, $username, $email, $password);
+                // Explizit 'user' als Rolle setzen für neue Registrierungen
+                register_user($name, $username, $email, $password, 'user');
                 authenticate($username ?: $email, $password);
-                header('Location: /dashboard.php');
+                header('Location: /');
                 exit;
             } catch (Throwable $e) {
-                $errors[] = t('register_failed');
+                // Zeige benutzerfreundliche Fehlermeldung
+                $errors[] = $e->getMessage();
             }
         }
     }
@@ -39,23 +41,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= e(t('register_title')) ?> - <?= e(APP_NAME) ?></title>
-  <link rel="icon" type="image/svg+xml" href="assets/files/favicon.svg">
-  <link rel="stylesheet" href="assets/css/app.css">
-  <script defer src="assets/js/theme.js"></script>
+  <title><?= e(t('page_title_register')) ?> - <?= e(APP_NAME) ?></title>
+  <?php render_common_head_links(); ?>
+  <?php render_i18n_for_js(['pwd_req_title', 'pwd_req_length', 'pwd_req_uppercase', 'pwd_req_lowercase', 'pwd_req_number', 'pwd_match', 'pwd_no_match']); ?>
+  <script defer src="/assets/js/password-validator.js"></script>
 </head>
 <body class="page">
-  <main class="center">
-    <div class="container">
-      <div class="brand">
-        <h1><?= e(APP_NAME) ?></h1>
-        <button id="theme-toggle" class="btn-secondary" style="margin-top:.5rem;">
-          <?= e(t('toggle_theme')) ?>
-        </button>
-      </div>
+  <?php 
+    render_brand_header(['cta' => ['label' => t('to_login'), 'href' => '/login/']]);
+  ?>
+  <main class="page-content">
+    <div class="container reveal-enter">
 
       <?php if ($errors): ?>
-        <div class="alert" style="margin-bottom:1rem;">
+        <div class="alert">
           <?php foreach ($errors as $err): ?>
             <div><?= e($err) ?></div>
           <?php endforeach; ?>
@@ -63,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
 
       <form method="post" class="card">
-        <h2 style="margin:0;">&nbsp;<?= e(t('register_title')) ?></h2>
+        <h2 class="card-title"><?= e(t('register_title')) ?></h2>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <label>
           <span><?= e(t('name')) ?></span>
@@ -88,9 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit" class="btn-primary"><?= e(t('register_button')) ?></button>
       </form>
 
-      <p class="mt-2" style="text-align:center;">
-        <a class="link" href="login.php"><?= e(t('to_login')) ?></a>
-      </p>
+      
     </div>
   </main>
 </body>

@@ -11,34 +11,43 @@ function register_user(string $name, string $username, string $email, string $pa
         throw new InvalidArgumentException('Invalid username');
     }
     if (strlen($password) < 8) {
-        throw new InvalidArgumentException('Password too short');
+        throw new InvalidArgumentException(t('password_too_short'));
+    }
+    // Passwort muss Großbuchstabe, Kleinbuchstabe und Zahl enthalten
+    if (!preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/[0-9]/', $password)) {
+        throw new InvalidArgumentException(t('password_weak'));
     }
     // unique checks
     $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
     $stmt->execute([$email]);
     if ($stmt->fetch()) {
-        throw new RuntimeException('Email already exists');
+        throw new RuntimeException(t('email_already_exists'));
     }
     $stmt = $pdo->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
     $stmt->execute([$username]);
     if ($stmt->fetch()) {
-        throw new RuntimeException('Username already exists');
+        throw new RuntimeException(t('username_already_exists'));
     }
     $hash = password_hash($password, PASSWORD_BCRYPT);
-    $role = $desiredRole;
-    if ($role !== null) {
-        $role = strtolower(trim($role));
+    
+    // Rollen-Logik: Standard ist immer 'user'
+    $role = 'user';
+    if ($desiredRole !== null) {
+        $role = strtolower(trim($desiredRole));
+        // Nur 'admin' oder 'user' sind erlaubt
         if (!in_array($role, ['admin','user'], true)) {
             $role = 'user';
         }
-    } else {
-        $role = (defined('ADMIN_EMAIL') && strcasecmp($email, ADMIN_EMAIL) === 0) ? 'admin' : 'user';
+    } elseif (defined('ADMIN_EMAIL') && strcasecmp($email, ADMIN_EMAIL) === 0) {
+        // Nur wenn ADMIN_EMAIL definiert ist und übereinstimmt
+        $role = 'admin';
     }
-    if ($role === '' || $role === null) {
-        $role = 'user';
-    }
+    
     $stmt = $pdo->prepare('INSERT INTO users (name, username, email, password, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())');
-    $stmt->execute([$name ?: $username, $username, $email, $hash, $role]);
+    if (!$stmt->execute([$name ?: $username, $username, $email, $hash, $role])) {
+        $errorInfo = $stmt->errorInfo();
+        throw new RuntimeException('Database error: ' . ($errorInfo[2] ?? 'Unknown error'));
+    }
 }
 
 function authenticate_with_lockout(string $identifier, string $password): array {
@@ -180,35 +189,46 @@ function current_user(): ?array {
     return $stmt->fetch() ?: null;
 }
 
-function update_profile(int $userId, string $username, string $email): void {
+function update_profile(int $userId, string $name, string $username, string $email): void {
     $pdo = db();
+    // Validierung
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        throw new InvalidArgumentException('Invalid email');
+        throw new InvalidArgumentException(t('invalid_email'));
     }
     if (!preg_match('/^[A-Za-z0-9_.-]{3,32}$/', $username)) {
-        throw new InvalidArgumentException('Invalid username');
+        throw new InvalidArgumentException(t('invalid_username'));
     }
-    // uniqueness excluding self
+    if (strlen(trim($name)) < 2) {
+        throw new InvalidArgumentException(t('invalid_name'));
+    }
+    
+    // Eindeutigkeit prüfen (außer für aktuellen Benutzer)
     $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1');
     $stmt->execute([$email, $userId]);
     if ($stmt->fetch()) {
-        throw new RuntimeException('Email already exists');
+        throw new RuntimeException(t('email_already_exists'));
     }
+    
     $stmt = $pdo->prepare('SELECT id FROM users WHERE username = ? AND id <> ? LIMIT 1');
     $stmt->execute([$username, $userId]);
     if ($stmt->fetch()) {
-        throw new RuntimeException('Username already exists');
+        throw new RuntimeException(t('username_already_exists'));
     }
-    $stmt = $pdo->prepare('UPDATE users SET username = ?, email = ?, updated_at = NOW() WHERE id = ?');
-    $stmt->execute([$username, $email, $userId]);
+    
+    $stmt = $pdo->prepare('UPDATE users SET name = ?, username = ?, email = ?, updated_at = NOW() WHERE id = ?');
+    $stmt->execute([trim($name), $username, $email, $userId]);
 }
 
 function update_password(int $userId, string $currentPassword, string $newPassword, string $newPasswordConfirm): void {
     if ($newPassword !== $newPasswordConfirm) {
-        throw new InvalidArgumentException('Passwords do not match');
+        throw new InvalidArgumentException(t('password_mismatch'));
     }
     if (strlen($newPassword) < 8) {
-        throw new InvalidArgumentException('Password too short');
+        throw new InvalidArgumentException(t('password_too_short'));
+    }
+    // Passwort muss Großbuchstabe, Kleinbuchstabe und Zahl enthalten
+    if (!preg_match('/[A-Z]/', $newPassword) || !preg_match('/[a-z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword)) {
+        throw new InvalidArgumentException(t('password_weak'));
     }
     $pdo = db();
     $stmt = $pdo->prepare('SELECT password FROM users WHERE id = ? LIMIT 1');
