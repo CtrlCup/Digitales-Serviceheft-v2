@@ -103,8 +103,12 @@ function authenticate_with_lockout(string $identifier, string $password): array 
         // success: reset counters, set last login info, set session
         $_SESSION['user_id'] = $userId;
         $device = $agent !== '' ? $agent : null;
-        $upd = $pdo->prepare('UPDATE users SET failed_logins = 0, locked_until = NULL, last_login_at = NOW(), last_login_ip = ?, last_login_device = ?, updated_at = NOW() WHERE id = ?');
-        $upd->execute([$ip, $device, $userId]);
+        
+        // Note: For users with 2FA, these fields will be updated again after 2FA verification
+        // This ensures last_login_* reflects the most recent completed authentication
+        $has2fa = user_has_2fa($userId) ? 1 : 0;
+        $upd = $pdo->prepare('UPDATE users SET failed_logins = 0, locked_until = NULL, last_login_at = NOW(), last_login_ip = ?, last_login_device = ?, last_login_method = ?, last_login_2fa_enabled = ?, updated_at = NOW() WHERE id = ?');
+        $upd->execute([$ip, $device, 'password', $has2fa, $userId]);
         $logAudit($userId, true);
         return [true, null];
     }

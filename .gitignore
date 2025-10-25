@@ -14,6 +14,7 @@ logs/
 *.sql
 sql/*.dump
 !/sql/schema.sql
+!/sql/migration_*.sql
 
 # Runtime/cache (if added later)
 storage/

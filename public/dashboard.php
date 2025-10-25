@@ -21,7 +21,7 @@ $user = current_user();
   <?php render_brand_header([
     'links' => [
       ['label' => t('account_link'), 'href' => '/account/', 'icon' => 'user', 'text' => $user['username'] ?? ''],
-      ['label' => t('logout'), 'href' => '/logout.php', 'icon' => 'logout']
+      ['label' => t('logout'), 'href' => '/logout', 'icon' => 'logout']
     ]
   ]); ?>
   <main class="page-content">

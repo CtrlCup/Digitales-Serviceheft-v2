@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS users (
   last_login_at TIMESTAMP NULL,
   last_login_ip VARCHAR(45) NULL,
   last_login_device VARCHAR(255) NULL,
+  last_login_method VARCHAR(20) NULL COMMENT 'Login method: password or passkey',
+  last_login_2fa_enabled TINYINT(1) NULL COMMENT '2FA status at time of last login',
   failed_logins INT UNSIGNED NOT NULL DEFAULT 0,
   locked_until TIMESTAMP NULL,
   created_at TIMESTAMP NULL,

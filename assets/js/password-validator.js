@@ -6,8 +6,15 @@
 
   // Warte bis DOM geladen ist
   document.addEventListener('DOMContentLoaded', function() {
-    const passwordField = document.querySelector('input[name="password"]');
-    const confirmField = document.querySelector('input[name="password_confirm"]');
+    // Try to find password fields (works for both register and account pages)
+    let passwordField = document.querySelector('input[name="password"]');
+    let confirmField = document.querySelector('input[name="password_confirm"]');
+    
+    // If not found, try new_password fields (for account password change)
+    if (!passwordField) {
+      passwordField = document.querySelector('input[name="new_password"]');
+      confirmField = document.querySelector('input[name="new_password_confirm"]');
+    }
     
     if (!passwordField || !confirmField) return;
 

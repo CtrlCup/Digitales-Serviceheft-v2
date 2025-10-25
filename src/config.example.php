@@ -4,6 +4,7 @@ declare(strict_types=1);
 // App (example template for commits)
 const APP_NAME   = 'Digitales Serviceheft';
 const APP_LOCALE = 'de';
+const APP_DOMAIN = 'localhost'; // Domain für Passkeys/WebAuthn (ohne http://, nur domain.com)
 const ADMIN_EMAIL = 'admin@example.com';
 
 // Database (fill on the server in config.php, do NOT commit real values)

@@ -8,6 +8,8 @@ function e(string $value): string {
 function render_common_head_links(): void {
     // Get base URL for assets (works from any directory depth)
     $base = '/';
+    // Hide browser loading indicators
+    echo '<style>::-webkit-progress-bar,::-webkit-progress-value{display:none!important}progress,[role="progressbar"]{display:none!important}</style>';
     echo '<link rel="icon" type="image/svg+xml" href="' . $base . 'assets/files/favicon.svg">';
     echo '<link rel="shortcut icon" href="' . $base . 'assets/files/favicon.svg">';
     echo '<link rel="apple-touch-icon" href="' . $base . 'assets/files/favicon.svg">';
