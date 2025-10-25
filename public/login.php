@@ -121,11 +121,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container reveal-enter">
 
       <?php if ($errors): ?>
-        <div class="alert">
-          <?php foreach ($errors as $err): ?>
-            <div><?= e($err) ?></div>
-          <?php endforeach; ?>
+        <div class="error-notification" id="error-toast">
+          <div class="error-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <div class="error-content">
+            <?php foreach ($errors as $err): ?>
+              <div class="error-message"><?= e($err) ?></div>
+            <?php endforeach; ?>
+          </div>
+          <button type="button" class="error-close" onclick="this.parentElement.style.display='none'" aria-label="Schließen">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
+        <script>
+          // Auto-hide error toast after 5 seconds
+          setTimeout(() => {
+            const toast = document.getElementById('error-toast');
+            if (toast) toast.style.display = 'none';
+          }, 5000);
+        </script>
       <?php endif; ?>
 
       <?php if ($require2fa): ?>

@@ -66,6 +66,16 @@ return [
     'invalid_username' => 'Ungültiger Benutzername. Nur Buchstaben, Zahlen, Punkt, Unterstrich und Bindestrich sind erlaubt (3-32 Zeichen).',
     'invalid_name' => 'Name muss mindestens 2 Zeichen lang sein.',
     
+    // Availability Check
+    'availability_error' => 'Bitte korrigiere die markierten Felder, bevor du speicherst.',
+    'availability_error_register' => 'Bitte wähle einen verfügbaren Benutzernamen und eine verfügbare E-Mail-Adresse.',
+    'username_available' => 'Benutzername verfügbar',
+    'username_taken' => 'Benutzername bereits vergeben',
+    'email_available' => 'E-Mail verfügbar',
+    'email_taken' => 'E-Mail bereits vergeben',
+    'email_format_invalid' => 'Ungültiges E-Mail-Format (z.B. name@domain.de)',
+    'checking_availability' => 'Überprüfe Verfügbarkeit...',
+    
     // Sicherheit / Security
     'security_section' => 'Sicherheit',
     '2fa_title' => 'Zwei-Faktor-Authentifizierung (2FA)',
@@ -104,4 +114,17 @@ return [
     
     'login_with_passkey' => 'Mit Passkey anmelden',
     'or_divider' => 'oder',
+    
+    // Account Deletion
+    'delete_account_title' => 'Account löschen',
+    'delete_account_description' => 'Diese Aktion kann nicht rückgängig gemacht werden. Alle deine Daten werden permanent gelöscht.',
+    'delete_account_button' => 'Account löschen',
+    'delete_account_confirm_title' => 'Bist du dir sicher?',
+    'delete_account_confirm_text' => 'Diese Aktion löscht deinen Account unwiderruflich. Alle deine Daten, Einstellungen und Passkeys werden permanent gelöscht.',
+    'delete_account_confirm_instruction' => 'Gib deine E-Mail-Adresse zur Bestätigung ein:',
+    'delete_account_email_label' => 'Deine E-Mail-Adresse',
+    'delete_account_confirm_button' => 'Account endgültig löschen',
+    'delete_account_final_confirm' => 'Letzte Warnung: Dies löscht deinen Account unwiderruflich. Fortfahren?',
+    'delete_account_email_mismatch' => 'Die eingegebene E-Mail-Adresse stimmt nicht überein.',
+    'cancel' => 'Abbrechen',
 ];

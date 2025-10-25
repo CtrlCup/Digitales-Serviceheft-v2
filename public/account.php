@@ -41,6 +41,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $security_message = t('passkey_removed_success');
                     $passkeys = get_user_passkeys((int)$user['id']);
                 }
+            } elseif (isset($_POST['action']) && $_POST['action'] === 'delete_account') {
+                $confirmEmail = trim($_POST['confirm_email'] ?? '');
+                if ($confirmEmail === $user['email']) {
+                    // Delete user account
+                    delete_user_account((int)$user['id']);
+                    // Logout
+                    logout_user();
+                    header('Location: /');
+                    exit;
+                } else {
+                    $errors[] = t('delete_account_email_mismatch');
+                }
             }
         } catch (Throwable $e) {
             $errors[] = $e->getMessage();
@@ -54,8 +66,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= e(t('page_title_account')) ?> - <?= e(APP_NAME) ?></title>
   <?php render_common_head_links(); ?>
-  <?php render_i18n_for_js(['pwd_req_title', 'pwd_req_length', 'pwd_req_uppercase', 'pwd_req_lowercase', 'pwd_req_number', 'pwd_match', 'pwd_no_match']); ?>
+  <?php render_i18n_for_js([
+    'pwd_req_title', 'pwd_req_length', 'pwd_req_uppercase', 'pwd_req_lowercase', 'pwd_req_number', 'pwd_match', 'pwd_no_match',
+    'availability_error', 'username_available', 'username_taken', 'email_available', 'email_taken', 'checking_availability'
+  ]); ?>
   <script defer src="/assets/js/password-validator.js"></script>
+  <script defer src="/assets/js/account-validator.js"></script>
 </head>
 <body class="page">
   <?php render_brand_header([
@@ -66,18 +82,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ]
   ]); ?>
   <main class="page-content">
-    <div class="container reveal-enter">
+    <div class="container-wide reveal-enter">
 
       <?php if ($errors): ?>
-        <div class="alert">
-          <?php foreach ($errors as $err): ?>
-            <div><?= e($err) ?></div>
-          <?php endforeach; ?>
+        <div class="error-notification" id="error-toast">
+          <div class="error-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <div class="error-content">
+            <?php foreach ($errors as $err): ?>
+              <div class="error-message"><?= e($err) ?></div>
+            <?php endforeach; ?>
+          </div>
+          <button type="button" class="error-close" onclick="this.parentElement.style.display='none'" aria-label="Schließen">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
+        <script>
+          setTimeout(() => {
+            const toast = document.getElementById('error-toast');
+            if (toast) toast.style.display = 'none';
+          }, 5000);
+        </script>
       <?php endif; ?>
 
-      <form method="post" class="card" style="margin-bottom:1.5rem;">
-        <h2 class="card-title"><?= e(t('profile_section')) ?></h2>
+      <div class="account-grid">
+        <form method="post" class="card">
+          <h2 class="card-title"><?= e(t('profile_section')) ?></h2>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="profile">
         <label>
@@ -98,10 +136,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?= e($profile_message) ?>
           </div>
         <?php endif; ?>
-      </form>
+        </form>
 
-      <form method="post" class="card">
-        <h2 class="card-title"><?= e(t('password_section')) ?></h2>
+        <form method="post" class="card">
+          <h2 class="card-title"><?= e(t('password_section')) ?></h2>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="password">
         <label>
@@ -122,10 +160,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?= e($password_message) ?>
           </div>
         <?php endif; ?>
-      </form>
+        </form>
 
-      <div class="card" style="margin-bottom:1.5rem;">
-        <h2 class="card-title"><?= e(t('security_section')) ?></h2>
+        <div class="card">
+          <h2 class="card-title"><?= e(t('security_section')) ?></h2>
         
         <?php if ($security_message): ?>
           <div class="alert success-message" style="margin-bottom:1rem;">
@@ -197,9 +235,102 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?= e(t('passkey_add_button')) ?>
           </a>
         </div>
+        
+        <!-- Account Deletion Section -->
+        <div style="margin-top:3rem;padding-top:2rem;border-top:2px solid rgba(var(--color-border), 0.5);">
+          <h3 style="font-size:1.1rem;margin-bottom:0.5rem;color:rgb(239, 68, 68);"><?= e(t('delete_account_title')) ?></h3>
+          <p style="color:var(--text-muted);margin-bottom:1rem;"><?= e(t('delete_account_description')) ?></p>
+          
+          <button type="button" id="delete-account-btn" class="btn-primary" style="padding:0.5rem 1rem;background:#dc3545;border-color:#dc3545;">
+            <?= e(t('delete_account_button')) ?>
+          </button>
+        </div>
+        </div>
       </div>
 
     </div>
   </main>
+  
+  <!-- Delete Account Modal -->
+  <div id="delete-account-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:rgb(var(--color-bg));padding:2rem;border-radius:var(--radius-lg);max-width:500px;width:90%;margin:1rem;box-shadow:var(--shadow-lg);">
+      <h3 style="color:rgb(239, 68, 68);margin-bottom:1rem;font-size:1.5rem;"><?= e(t('delete_account_confirm_title')) ?></h3>
+      <p style="margin-bottom:1rem;color:var(--text-muted);"><?= e(t('delete_account_confirm_text')) ?></p>
+      <p style="margin-bottom:1.5rem;font-weight:600;"><?= e(t('delete_account_confirm_instruction')) ?></p>
+      
+      <form method="post" id="delete-account-form">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="action" value="delete_account">
+        <label style="margin-bottom:1.5rem;">
+          <span style="font-weight:500;margin-bottom:0.5rem;display:block;"><?= e(t('delete_account_email_label')) ?></span>
+          <input type="text" name="confirm_email" id="confirm-email-input" required autocomplete="off" 
+                 placeholder="<?= e($user['email']) ?>" 
+                 style="font-family:'Courier New',monospace;">
+        </label>
+        
+        <div style="display:flex;gap:1rem;">
+          <button type="submit" id="confirm-delete-btn" disabled class="btn-primary" 
+                  style="flex:1;background:#dc3545;border-color:#dc3545;opacity:0.5;cursor:not-allowed;">
+            <?= e(t('delete_account_confirm_button')) ?>
+          </button>
+          <button type="button" id="cancel-delete-btn" class="btn-primary" style="flex:1;background:var(--text-muted);border-color:var(--text-muted);">
+            <?= e(t('cancel')) ?>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    // Delete account modal functionality
+    const deleteAccountBtn = document.getElementById('delete-account-btn');
+    const deleteAccountModal = document.getElementById('delete-account-modal');
+    const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+    const confirmEmailInput = document.getElementById('confirm-email-input');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    const deleteAccountForm = document.getElementById('delete-account-form');
+    const userEmail = '<?= e($user['email']) ?>';
+    
+    deleteAccountBtn.addEventListener('click', () => {
+      deleteAccountModal.style.display = 'flex';
+      confirmEmailInput.value = '';
+      confirmEmailInput.focus();
+    });
+    
+    cancelDeleteBtn.addEventListener('click', () => {
+      deleteAccountModal.style.display = 'none';
+    });
+    
+    // Close modal on background click
+    deleteAccountModal.addEventListener('click', (e) => {
+      if (e.target === deleteAccountModal) {
+        deleteAccountModal.style.display = 'none';
+      }
+    });
+    
+    // Enable/disable confirm button based on email match
+    confirmEmailInput.addEventListener('input', () => {
+      if (confirmEmailInput.value === userEmail) {
+        confirmDeleteBtn.disabled = false;
+        confirmDeleteBtn.style.opacity = '1';
+        confirmDeleteBtn.style.cursor = 'pointer';
+      } else {
+        confirmDeleteBtn.disabled = true;
+        confirmDeleteBtn.style.opacity = '0.5';
+        confirmDeleteBtn.style.cursor = 'not-allowed';
+      }
+    });
+    
+    // Confirm before form submission
+    deleteAccountForm.addEventListener('submit', (e) => {
+      if (confirmEmailInput.value !== userEmail) {
+        e.preventDefault();
+        return;
+      }
+      if (!confirm('<?= e(t('delete_account_final_confirm')) ?>')) {
+        e.preventDefault();
+      }
+    });
+  </script>
 </body>
 </html>

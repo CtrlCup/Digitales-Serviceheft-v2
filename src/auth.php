@@ -245,3 +245,12 @@ function update_password(int $userId, string $currentPassword, string $newPasswo
     $stmt = $pdo->prepare('UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?');
     $stmt->execute([$hash, $userId]);
 }
+
+function delete_user_account(int $userId): void {
+    $pdo = db();
+    
+    // Delete user and all related data (cascading deletes are configured in schema)
+    // Related tables: email_verifications, user_2fa, webauthn_credentials, login_audit
+    $stmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
+    $stmt->execute([$userId]);
+}

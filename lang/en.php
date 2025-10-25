@@ -66,6 +66,16 @@ return [
     'invalid_username' => 'Invalid username. Only letters, numbers, dot, underscore and hyphen are allowed (3-32 characters).',
     'invalid_name' => 'Name must be at least 2 characters long.',
     
+    // Availability Check
+    'availability_error' => 'Please correct the marked fields before saving.',
+    'availability_error_register' => 'Please choose an available username and email address.',
+    'username_available' => 'Username available',
+    'username_taken' => 'Username already taken',
+    'email_available' => 'Email available',
+    'email_taken' => 'Email already taken',
+    'email_format_invalid' => 'Invalid email format (e.g. name@domain.com)',
+    'checking_availability' => 'Checking availability...',
+    
     // Security
     'security_section' => 'Security',
     '2fa_title' => 'Two-Factor Authentication (2FA)',
@@ -98,10 +108,23 @@ return [
     'passkey_name_label' => 'Passkey name',
     'passkey_name_placeholder' => 'e.g. "My iPhone" or "Fingerprint"',
     'passkey_added_success' => 'Passkey has been successfully added.',
-    'passkey_removed_success' => 'Passkey has been removed.',
+    'passkey_removed_success' => 'Passkey removed.',
     'passkey_last_used' => 'Last used:',
     'passkey_never_used' => 'Never used',
     
-    'login_with_passkey' => 'Sign in with passkey',
+    'login_with_passkey' => 'Login with Passkey',
     'or_divider' => 'or',
+    
+    // Account Deletion
+    'delete_account_title' => 'Delete Account',
+    'delete_account_description' => 'This action cannot be undone. All your data will be permanently deleted.',
+    'delete_account_button' => 'Delete Account',
+    'delete_account_confirm_title' => 'Are you sure?',
+    'delete_account_confirm_text' => 'This action will permanently delete your account. All your data, settings, and passkeys will be irreversibly deleted.',
+    'delete_account_confirm_instruction' => 'Enter your email address to confirm:',
+    'delete_account_email_label' => 'Your email address',
+    'delete_account_confirm_button' => 'Permanently delete account',
+    'delete_account_final_confirm' => 'Final warning: This will permanently delete your account. Continue?',
+    'delete_account_email_mismatch' => 'The entered email address does not match.',
+    'cancel' => 'Cancel',
 ];
