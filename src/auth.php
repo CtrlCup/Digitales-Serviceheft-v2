@@ -5,10 +5,10 @@ function register_user(string $name, string $username, string $email, string $pa
     $pdo = db();
     // simple validation
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        throw new InvalidArgumentException('Invalid email');
+        throw new InvalidArgumentException(t('error_invalid_email'));
     }
     if (!preg_match('/^[A-Za-z0-9_.-]{3,32}$/', $username)) {
-        throw new InvalidArgumentException('Invalid username');
+        throw new InvalidArgumentException(t('error_invalid_username'));
     }
     if (strlen($password) < 8) {
         throw new InvalidArgumentException(t('password_too_short'));
@@ -46,7 +46,7 @@ function register_user(string $name, string $username, string $email, string $pa
     $stmt = $pdo->prepare('INSERT INTO users (name, username, email, password, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())');
     if (!$stmt->execute([$name ?: $username, $username, $email, $hash, $role])) {
         $errorInfo = $stmt->errorInfo();
-        throw new RuntimeException('Database error: ' . ($errorInfo[2] ?? 'Unknown error'));
+        throw new RuntimeException(t('error_database') . ': ' . ($errorInfo[2] ?? 'Unknown error'));
     }
 }
 
@@ -239,7 +239,7 @@ function update_password(int $userId, string $currentPassword, string $newPasswo
     $stmt->execute([$userId]);
     $row = $stmt->fetch();
     if (!$row || !password_verify($currentPassword, $row['password'])) {
-        throw new RuntimeException('Current password invalid');
+        throw new RuntimeException(t('error_current_password_invalid'));
     }
     $hash = password_hash($newPassword, PASSWORD_BCRYPT);
     $stmt = $pdo->prepare('UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?');

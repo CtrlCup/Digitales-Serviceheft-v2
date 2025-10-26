@@ -1,4 +1,6 @@
 <?php
+// English
+// English
 return [
     'app_name' => 'Digital Service Book',
     'login_title' => 'Sign in',
@@ -127,4 +129,17 @@ return [
     'delete_account_final_confirm' => 'Final warning: This will permanently delete your account. Continue?',
     'delete_account_email_mismatch' => 'The entered email address does not match.',
     'cancel' => 'Cancel',
+    
+    // Passkey Registration
+    'passkey_enter_name' => 'Please enter a name for the passkey.',
+    'passkey_registering' => 'Registering passkey...',
+    'passkey_use_authenticator' => 'Please use your authenticator...',
+    'passkey_error' => 'Error',
+    
+    // Error Messages (Backend)
+    'error_invalid_email' => 'Invalid email address',
+    'error_invalid_username' => 'Invalid username',
+    'error_database' => 'Database error',
+    'error_current_password_invalid' => 'Current password is invalid',
+    'error_no_setup_session' => 'No setup session found. Please start over.',
 ];

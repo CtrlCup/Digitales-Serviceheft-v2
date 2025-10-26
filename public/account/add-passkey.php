@@ -65,7 +65,7 @@ $user = current_user();
               <?= e(t('passkey_add_button')) ?>
             </button>
             <a href="/account/" class="btn-secondary" style="text-decoration:none;padding:0.75rem 1.5rem;">
-              Abbrechen
+              <?= e(t('cancel')) ?>
             </a>
           </div>
         </form>
@@ -117,12 +117,12 @@ $user = current_user();
       
       const name = nameInput.value.trim();
       if (!name) {
-        showStatus('Bitte gib einen Namen für den Passkey ein.', 'error');
+        showStatus('<?= e(t('passkey_enter_name')) ?>', 'error');
         return;
       }
       
       registerBtn.disabled = true;
-      showStatus('Passkey wird registriert...', 'info');
+      showStatus('<?= e(t('passkey_registering')) ?>', 'info');
       
       try {
         // Step 1: Get challenge from server
@@ -153,7 +153,7 @@ $user = current_user();
         };
         
         // Step 2: Create credential
-        showStatus('Bitte verwende deinen Authenticator...', 'info');
+        showStatus('<?= e(t('passkey_use_authenticator')) ?>', 'info');
         const credential = await navigator.credentials.create({
           publicKey: publicKeyCredentialCreationOptions
         });
@@ -193,7 +193,7 @@ $user = current_user();
         
       } catch (error) {
         console.error('Passkey registration error:', error);
-        showStatus('Fehler: ' + error.message, 'error');
+        showStatus('<?= e(t('passkey_error')) ?>: ' + error.message, 'error');
         registerBtn.disabled = false;
       }
     });

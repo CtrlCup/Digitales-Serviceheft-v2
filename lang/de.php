@@ -1,4 +1,6 @@
 <?php
+// Deutsch
+// German
 return [
     'app_name' => 'Digitales Serviceheft',
     'login_title' => 'Anmeldung',
@@ -127,4 +129,17 @@ return [
     'delete_account_final_confirm' => 'Letzte Warnung: Dies löscht deinen Account unwiderruflich. Fortfahren?',
     'delete_account_email_mismatch' => 'Die eingegebene E-Mail-Adresse stimmt nicht überein.',
     'cancel' => 'Abbrechen',
+    
+    // Passkey-Registrierung
+    'passkey_enter_name' => 'Bitte gib einen Namen für den Passkey ein.',
+    'passkey_registering' => 'Passkey wird registriert...',
+    'passkey_use_authenticator' => 'Bitte verwende deinen Authenticator...',
+    'passkey_error' => 'Fehler',
+    
+    // Fehler-Nachrichten (Backend)
+    'error_invalid_email' => 'Ungültige E-Mail-Adresse',
+    'error_invalid_username' => 'Ungültiger Benutzername',
+    'error_database' => 'Datenbankfehler',
+    'error_current_password_invalid' => 'Aktuelles Passwort ist ungültig',
+    'error_no_setup_session' => 'Keine Setup-Sitzung gefunden. Bitte beginne von vorne.',
 ];

@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Get the secret from session
                     $secret = $_SESSION['2fa_setup_secret'] ?? null;
                     if (!$secret) {
-                        throw new RuntimeException('No setup session found. Please start over.');
+                        throw new RuntimeException(t('error_no_setup_session'));
                     }
                     
                     // Verify the code
@@ -204,7 +204,7 @@ $qrCodeUrl = $_SESSION['2fa_setup_qr'] ?? '';
             <div style="display:flex;gap:1rem;">
               <button type="submit" class="btn-primary"><?= e(t('2fa_verify_button')) ?></button>
               <a href="/account/" class="btn-secondary" style="text-decoration:none;padding:0.75rem 1.5rem;">
-                Abbrechen
+                <?= e(t('cancel')) ?>
               </a>
             </div>
           </form>
