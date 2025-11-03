@@ -27,6 +27,7 @@ return [
 
     'login_failed' => 'Anmeldung fehlgeschlagen. Bitte E-Mail/Passwort prüfen.',
     'account_locked_wait' => 'Zu viele fehlgeschlagene Anmeldeversuche. Bitte warte noch %s, bevor du es erneut versuchst.',
+    'account_locked_remaining' => 'Dein Account ist gesperrt. Verbleibende Zeit: %s Tage, %s Stunden, %s Minuten, %s Sekunden.',
     'register_failed' => 'Registrierung fehlgeschlagen.',
     'password_mismatch' => 'Die Passwörter stimmen nicht überein.',
     'password_too_short' => 'Das Passwort muss mindestens 8 Zeichen lang sein.',
@@ -142,4 +143,81 @@ return [
     'error_database' => 'Datenbankfehler',
     'error_current_password_invalid' => 'Aktuelles Passwort ist ungültig',
     'error_no_setup_session' => 'Keine Setup-Sitzung gefunden. Bitte beginne von vorne.',
+    
+    // Admin & User Management
+    'admin_panel_title' => 'Verwaltung',
+    'admin_panel_description' => 'Verwalte Einstellungen und Benutzer.',
+    'admin_settings_title' => 'Einstellungen',
+    'admin_settings_link' => 'Einstellungen',
+    'user_management_title' => 'Benutzerverwaltung',
+    'user_management_description' => 'Verwalte alle registrierten Benutzer und deren Berechtigungen.',
+    'user_management_intro' => 'Hier kannst du die Rollen aller Benutzer verwalten. Die Hierarchie ist: Betrachter < User < Admin < Owner.',
+    'manage_users' => 'Benutzer verwalten',
+    
+    // Registration Settings
+    'registration_settings_title' => 'Registrierung',
+    'registration_settings_description' => 'Steuere, ob sich neue Benutzer registrieren können.',
+    'registration_status' => 'Registrierungsstatus',
+    'registration_enabled' => 'Aktiviert',
+    'registration_disabled' => 'Deaktiviert',
+    'enable_registration' => 'Registrierung aktivieren',
+    'disable_registration' => 'Registrierung deaktivieren',
+    'registration_enabled_success' => 'Registrierung wurde aktiviert.',
+    'registration_disabled_success' => 'Registrierung wurde deaktiviert.',
+    
+    // Roles
+    'role' => 'Rolle',
+    'role_viewer' => 'Betrachter',
+    'role_user' => 'User',
+    'role_admin' => 'Admin',
+    'role_owner' => 'Owner',
+    'change_role' => 'Rolle ändern...',
+    'role_changed_success' => 'Rolle wurde erfolgreich geändert.',
+    
+    // Role Descriptions
+    'role_hierarchy_title' => 'Rollen-Hierarchie:',
+    'role_owner_description' => 'Hat volle Kontrolle über alle Benutzer und Einstellungen. Kann nur einmal vergeben werden.',
+    'role_admin_description' => 'Kann User zu Admin befördern, aber nicht zurückstufen.',
+    'role_user_description' => 'Kann Betrachter zu User befördern.',
+    'role_viewer_description' => 'Kann nur Inhalte ansehen, aber keine Änderungen vornehmen.',
+    
+    // Errors
+    'error_user_not_found' => 'Benutzer nicht gefunden.',
+    'error_invalid_role' => 'Ungültige Rolle.',
+    'error_permission_denied' => 'Keine Berechtigung für diese Aktion.',
+    'error_cannot_demote' => 'Du kannst Benutzer nicht zurückstufen.',
+    'error_owner_exists' => 'Es kann nur einen Owner geben.',
+    
+    // General
+    'actions' => 'Aktionen',
+    'registered_at' => 'Registriert am',
+    'status' => 'Status',
+    'locked' => 'Gesperrt',
+    'active' => 'Aktiv',
+    'you' => 'Du',
+    
+    // Admin actions
+    'change_email' => 'Email ändern',
+    'change_password' => 'Passwort ändern',
+    'delete_account' => 'Account löschen',
+    'lock_account' => 'Account sperren',
+    'unlock_account' => 'Account entsperren',
+    'new_email' => 'Neue Email',
+    'new_password' => 'Neues Passwort',
+    'delete_account_confirm' => 'Möchten Sie den Account von',
+    'action_irreversible' => 'Diese Aktion kann nicht rückgängig gemacht werden.',
+    
+    // Success messages
+    'email_changed_success' => 'Email erfolgreich geändert.',
+    'password_changed_success' => 'Passwort erfolgreich geändert.',
+    'account_locked_success' => 'Account erfolgreich gesperrt.',
+    'account_unlocked_success' => 'Account erfolgreich entsperrt.',
+    'account_deleted_success' => 'Account erfolgreich gelöscht.',
+    
+    // Errors
+    'error_cannot_lock_owner' => 'Owner-Accounts können nicht gesperrt werden.',
+    'error_cannot_lock_self' => 'Sie können Ihren eigenen Account nicht sperren.',
+    'error_cannot_modify_owner' => 'Owner-Accounts können nicht modifiziert werden.',
+    'error_cannot_delete_owner' => 'Owner-Accounts können nicht gelöscht werden.',
+    'error_cannot_delete_self' => 'Sie können Ihren eigenen Account nicht löschen.',
 ];

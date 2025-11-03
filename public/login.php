@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="page">
   <?php 
-    $cta = (defined('ALLOW_REGISTRATION') ? ALLOW_REGISTRATION : true)
+    $cta = is_registration_enabled()
       ? ['label' => t('register_button'), 'href' => '/register/']
       : null;
     render_brand_header(['cta' => $cta]);

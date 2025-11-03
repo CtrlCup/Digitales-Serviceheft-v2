@@ -142,4 +142,53 @@ return [
     'error_database' => 'Database error',
     'error_current_password_invalid' => 'Current password is invalid',
     'error_no_setup_session' => 'No setup session found. Please start over.',
+    
+    // Admin & User Management
+    'admin_panel_title' => 'Administration',
+    'admin_panel_description' => 'Manage settings and users.',
+    'admin_settings_title' => 'Settings',
+    'admin_settings_link' => 'Settings',
+    'user_management_title' => 'User Management',
+    'user_management_description' => 'Manage all registered users and their permissions.',
+    'user_management_intro' => 'Here you can manage user roles. The hierarchy is: Viewer < User < Admin < Owner.',
+    'manage_users' => 'Manage Users',
+    
+    // Registration Settings
+    'registration_settings_title' => 'Registration',
+    'registration_settings_description' => 'Control whether new users can register.',
+    'registration_status' => 'Registration Status',
+    'registration_enabled' => 'Enabled',
+    'registration_disabled' => 'Disabled',
+    'enable_registration' => 'Enable Registration',
+    'disable_registration' => 'Disable Registration',
+    'registration_enabled_success' => 'Registration has been enabled.',
+    'registration_disabled_success' => 'Registration has been disabled.',
+    
+    // Roles
+    'role' => 'Role',
+    'role_viewer' => 'Viewer',
+    'role_user' => 'User',
+    'role_admin' => 'Admin',
+    'role_owner' => 'Owner',
+    'change_role' => 'Change role...',
+    'role_changed_success' => 'Role has been successfully changed.',
+    
+    // Role Descriptions
+    'role_hierarchy_title' => 'Role Hierarchy:',
+    'role_owner_description' => 'Has full control over all users and settings. Can only be assigned once.',
+    'role_admin_description' => 'Can promote users to admin, but cannot demote.',
+    'role_user_description' => 'Can promote viewers to user.',
+    'role_viewer_description' => 'Can only view content, but cannot make changes.',
+    
+    // Errors
+    'error_user_not_found' => 'User not found.',
+    'error_invalid_role' => 'Invalid role.',
+    'error_permission_denied' => 'Permission denied for this action.',
+    'error_cannot_demote' => 'You cannot demote users.',
+    'error_owner_exists' => 'There can only be one owner.',
+    
+    // General
+    'actions' => 'Actions',
+    'registered_at' => 'Registered on',
+    'you' => 'You',
 ];

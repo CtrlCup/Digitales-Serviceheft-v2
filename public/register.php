@@ -2,7 +2,8 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../src/bootstrap.php';
 
-if (defined('ALLOW_REGISTRATION') && ALLOW_REGISTRATION === false) {
+// Prüfe ob Registrierung aktiviert ist (Config oder Datenbank)
+if ((defined('ALLOW_REGISTRATION') && ALLOW_REGISTRATION === false) || !is_registration_enabled()) {
     header('Location: /login/');
     exit;
 }

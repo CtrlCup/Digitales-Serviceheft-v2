@@ -88,9 +88,9 @@ function authenticate_with_lockout(string $identifier, string $password): array 
             $lockedUntil = new DateTimeImmutable($user['locked_until']);
             if ($lockedUntil > $now) {
                 $remaining = $lockedUntil->getTimestamp() - $now->getTimestamp();
-                $formatted = format_duration_compact($remaining);
+                [$d,$h,$m,$s] = format_duration_dhms($remaining);
                 $logAudit($userId, false);
-                return [false, sprintf(t('account_locked_wait'), $formatted)];
+                return [false, sprintf(t('account_locked_remaining'), $d, $h, $m, $s)];
             }
         } catch (Throwable $e) {
             // if parse fails, ignore lock and continue
@@ -122,7 +122,8 @@ function authenticate_with_lockout(string $identifier, string $password): array 
         $lockSeconds = max(60, $lockMinutes * 60);
         $until = $now->modify('+' . $lockSeconds . ' seconds');
         $lockedUntilSql = $until->format('Y-m-d H:i:s');
-        $error = sprintf(t('account_locked_wait'), format_duration_compact($lockSeconds));
+        [$d2,$h2,$m2,$s2] = format_duration_dhms($lockSeconds);
+        $error = sprintf(t('account_locked_remaining'), $d2, $h2, $m2, $s2);
     }
     if ($lockedUntilSql) {
         if (defined('LOGIN_RESET_ON_LOCK') && LOGIN_RESET_ON_LOCK) {
@@ -150,6 +151,17 @@ function format_duration_compact(int $seconds): string {
         return $m . 'm';
     }
     return $s . 's';
+}
+
+function format_duration_dhms(int $seconds): array {
+    if ($seconds < 0) $seconds = 0;
+    $d = intdiv($seconds, 86400);
+    $seconds %= 86400;
+    $h = intdiv($seconds, 3600);
+    $seconds %= 3600;
+    $m = intdiv($seconds, 60);
+    $s = $seconds % 60;
+    return [$d, $h, $m, $s];
 }
 
 function authenticate(string $identifier, string $password): bool {
@@ -251,6 +263,362 @@ function delete_user_account(int $userId): void {
     
     // Delete user and all related data (cascading deletes are configured in schema)
     // Related tables: email_verifications, user_2fa, webauthn_credentials, login_audit
+    $stmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
+    $stmt->execute([$userId]);
+}
+
+// ========================================
+// Role Management Functions
+// ========================================
+
+/**
+ * Rolle-Hierarchie: viewer < user < admin < owner
+ * Rückgabewert: niedrigere Zahl = niedrigere Berechtigung
+ */
+function get_role_level(string $role): int {
+    $levels = [
+        'viewer' => 1,
+        'user' => 2,
+        'admin' => 3,
+        'owner' => 4,
+    ];
+    return $levels[strtolower($role)] ?? 0;
+}
+
+/**
+ * Prüft, ob ein Benutzer eine bestimmte Rolle hat
+ */
+function user_has_role(int $userId, string $role): bool {
+    $user = get_user_by_id($userId);
+    if (!$user) return false;
+    return strtolower($user['role']) === strtolower($role);
+}
+
+/**
+ * Prüft, ob ein Benutzer mindestens eine bestimmte Rolle hat
+ */
+function user_has_min_role(int $userId, string $minRole): bool {
+    $user = get_user_by_id($userId);
+    if (!$user) return false;
+    return get_role_level($user['role']) >= get_role_level($minRole);
+}
+
+/**
+ * Prüft, ob der aktuelle Benutzer Admin oder Owner ist
+ */
+function is_admin(): bool {
+    $user = current_user();
+    if (!$user) return false;
+    return in_array(strtolower($user['role']), ['admin', 'owner'], true);
+}
+
+/**
+ * Prüft, ob der aktuelle Benutzer Owner ist
+ */
+function is_owner(): bool {
+    $user = current_user();
+    if (!$user) return false;
+    return strtolower($user['role']) === 'owner';
+}
+
+/**
+ * Erzwingt Admin-Berechtigung
+ */
+function require_admin(): void {
+    if (!is_admin()) {
+        http_response_code(403);
+        die('Zugriff verweigert. Admin-Berechtigung erforderlich.');
+    }
+}
+
+/**
+ * Erzwingt Owner-Berechtigung
+ */
+function require_owner(): void {
+    if (!is_owner()) {
+        http_response_code(403);
+        die('Zugriff verweigert. Owner-Berechtigung erforderlich.');
+    }
+}
+
+/**
+ * Holt einen Benutzer per ID
+ */
+function get_user_by_id(int $userId): ?array {
+    $pdo = db();
+    $stmt = $pdo->prepare('SELECT id, name, username, email, role, created_at FROM users WHERE id = ? LIMIT 1');
+    $stmt->execute([$userId]);
+    return $stmt->fetch() ?: null;
+}
+
+/**
+ * Holt alle Benutzer (nur für Admins)
+ */
+function get_all_users(): array {
+    $pdo = db();
+    $stmt = $pdo->query('SELECT id, name, username, email, role, created_at, last_login_at, locked_until FROM users ORDER BY created_at ASC');
+    return $stmt->fetchAll();
+}
+
+/**
+ * Ändert die Rolle eines Benutzers
+ * @param int $actorId - ID des Benutzers, der die Änderung vornimmt
+ * @param int $targetId - ID des Benutzers, dessen Rolle geändert wird
+ * @param string $newRole - Neue Rolle (viewer, user, admin, owner)
+ */
+function change_user_role(int $actorId, int $targetId, string $newRole): void {
+    $pdo = db();
+    $actor = get_user_by_id($actorId);
+    $target = get_user_by_id($targetId);
+    
+    if (!$actor || !$target) {
+        throw new InvalidArgumentException(t('error_user_not_found'));
+    }
+    
+    $newRole = strtolower(trim($newRole));
+    $validRoles = ['viewer', 'user', 'admin', 'owner'];
+    if (!in_array($newRole, $validRoles, true)) {
+        throw new InvalidArgumentException(t('error_invalid_role'));
+    }
+    
+    $actorLevel = get_role_level($actor['role']);
+    $targetLevel = get_role_level($target['role']);
+    $newLevel = get_role_level($newRole);
+    
+    // Owner kann alles
+    if ($actorLevel === 4) {
+        // Owner-Rolle kann nur einmal vergeben werden
+        if ($newRole === 'owner') {
+            // Prüfen, ob es bereits einen Owner gibt
+            $stmt = $pdo->prepare('SELECT id FROM users WHERE role = ? AND id <> ? LIMIT 1');
+            $stmt->execute(['owner', $targetId]);
+            if ($stmt->fetch()) {
+                throw new RuntimeException(t('error_owner_exists'));
+            }
+        }
+    } else if ($actorLevel === 3) {
+        // Admin kann nur User zu Admin machen, aber nicht zurück
+        if ($newLevel > 3) {
+            throw new RuntimeException(t('error_permission_denied'));
+        }
+        // Admin kann nur befördern, nicht degradieren
+        if ($newLevel < $targetLevel) {
+            throw new RuntimeException(t('error_cannot_demote'));
+        }
+        // Admin kann nur bis zu seinem eigenen Level befördern
+        if ($newLevel > $actorLevel) {
+            throw new RuntimeException(t('error_permission_denied'));
+        }
+    } else if ($actorLevel === 2) {
+        // User kann nur Viewer zu User machen
+        if ($targetLevel !== 1 || $newLevel !== 2) {
+            throw new RuntimeException(t('error_permission_denied'));
+        }
+    } else {
+        // Viewer kann nichts ändern
+        throw new RuntimeException(t('error_permission_denied'));
+    }
+    
+    // Rolle ändern
+    $stmt = $pdo->prepare('UPDATE users SET role = ?, updated_at = NOW() WHERE id = ?');
+    $stmt->execute([$newRole, $targetId]);
+}
+
+// ========================================
+// Site Settings Functions
+// ========================================
+
+/**
+ * Holt eine Einstellung
+ */
+function get_site_setting(string $key, ?string $default = null): ?string {
+    $pdo = db();
+    $stmt = $pdo->prepare('SELECT setting_value FROM site_settings WHERE setting_key = ? LIMIT 1');
+    $stmt->execute([$key]);
+    $row = $stmt->fetch();
+    return $row ? $row['setting_value'] : $default;
+}
+
+/**
+ * Setzt eine Einstellung
+ */
+function set_site_setting(string $key, string $value): void {
+    $pdo = db();
+    $stmt = $pdo->prepare('INSERT INTO site_settings (setting_key, setting_value, updated_at) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE setting_value = ?, updated_at = NOW()');
+    $stmt->execute([$key, $value, $value]);
+}
+
+/**
+ * Prüft, ob Registrierung aktiviert ist
+ */
+function is_registration_enabled(): bool {
+    return get_site_setting('registration_enabled', '1') === '1';
+}
+
+// ========================================
+// Admin User Management Functions
+// ========================================
+
+/**
+ * Sperrt oder entsperrt einen Benutzer-Account
+ * @param int $adminId - ID des Admins, der die Aktion durchführt
+ * @param int $userId - ID des Benutzers, der gesperrt/entsperrt wird
+ * @param bool $lock - true zum Sperren, false zum Entsperren
+ * @param string|null $lockUntil - Optionales Datum/Zeit (Y-m-d H:i:s) bis wann gesperrt wird
+ */
+function admin_lock_user_account(int $adminId, int $userId, bool $lock = true, ?string $lockUntil = null): void {
+    $pdo = db();
+    $admin = get_user_by_id($adminId);
+    $target = get_user_by_id($userId);
+    
+    if (!$admin || !$target) {
+        throw new InvalidArgumentException(t('error_user_not_found'));
+    }
+    
+    // Prüfe Berechtigung
+    if (!user_has_min_role($adminId, 'admin')) {
+        throw new RuntimeException(t('error_permission_denied'));
+    }
+    
+    // Owner kann nicht gesperrt werden, außer von einem anderen Owner
+    if (strtolower($target['role']) === 'owner' && !user_has_role($adminId, 'owner')) {
+        throw new RuntimeException(t('error_cannot_lock_owner'));
+    }
+    
+    // Sich selbst sperren ist nicht erlaubt
+    if ($adminId === $userId) {
+        throw new RuntimeException(t('error_cannot_lock_self'));
+    }
+    
+    $lockedUntil = null;
+    if ($lock) {
+        if ($lockUntil !== null && trim($lockUntil) !== '') {
+            // Validieren/Normalisieren: akzeptiere alles was strtotime versteht
+            $ts = strtotime($lockUntil);
+            if ($ts === false) {
+                // Fallback: 1 Woche ab jetzt
+                $ts = strtotime('+1 week');
+            }
+            $lockedUntil = date('Y-m-d H:i:s', $ts);
+        } else {
+            // Sperre für 100 Jahre (effektiv permanent, kann manuell entsperrt werden)
+            $lockedUntil = date('Y-m-d H:i:s', strtotime('+100 years'));
+        }
+    }
+    
+    $stmt = $pdo->prepare('UPDATE users SET locked_until = ?, updated_at = NOW() WHERE id = ?');
+    $stmt->execute([$lockedUntil, $userId]);
+}
+
+/**
+ * Ändert die Email eines Benutzers (Admin-Funktion)
+ * @param int $adminId - ID des Admins
+ * @param int $userId - ID des Benutzers
+ * @param string $newEmail - Neue Email-Adresse
+ */
+function admin_update_user_email(int $adminId, int $userId, string $newEmail): void {
+    $pdo = db();
+    $admin = get_user_by_id($adminId);
+    $target = get_user_by_id($userId);
+    
+    if (!$admin || !$target) {
+        throw new InvalidArgumentException(t('error_user_not_found'));
+    }
+    
+    // Prüfe Berechtigung
+    if (!user_has_min_role($adminId, 'admin')) {
+        throw new RuntimeException(t('error_permission_denied'));
+    }
+    
+    // Owner kann nicht von Admin geändert werden
+    if (strtolower($target['role']) === 'owner' && !user_has_role($adminId, 'owner')) {
+        throw new RuntimeException(t('error_cannot_modify_owner'));
+    }
+    
+    // Validierung
+    if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+        throw new InvalidArgumentException(t('error_invalid_email'));
+    }
+    
+    // Eindeutigkeit prüfen
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1');
+    $stmt->execute([$newEmail, $userId]);
+    if ($stmt->fetch()) {
+        throw new RuntimeException(t('email_already_exists'));
+    }
+    
+    $stmt = $pdo->prepare('UPDATE users SET email = ?, updated_at = NOW() WHERE id = ?');
+    $stmt->execute([$newEmail, $userId]);
+}
+
+/**
+ * Ändert das Passwort eines Benutzers (Admin-Funktion)
+ * @param int $adminId - ID des Admins
+ * @param int $userId - ID des Benutzers
+ * @param string $newPassword - Neues Passwort
+ */
+function admin_update_user_password(int $adminId, int $userId, string $newPassword): void {
+    $pdo = db();
+    $admin = get_user_by_id($adminId);
+    $target = get_user_by_id($userId);
+    
+    if (!$admin || !$target) {
+        throw new InvalidArgumentException(t('error_user_not_found'));
+    }
+    
+    // Prüfe Berechtigung
+    if (!user_has_min_role($adminId, 'admin')) {
+        throw new RuntimeException(t('error_permission_denied'));
+    }
+    
+    // Owner kann nicht von Admin geändert werden
+    if (strtolower($target['role']) === 'owner' && !user_has_role($adminId, 'owner')) {
+        throw new RuntimeException(t('error_cannot_modify_owner'));
+    }
+    
+    // Passwort-Validierung
+    if (strlen($newPassword) < 8) {
+        throw new InvalidArgumentException(t('password_too_short'));
+    }
+    if (!preg_match('/[A-Z]/', $newPassword) || !preg_match('/[a-z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword)) {
+        throw new InvalidArgumentException(t('password_weak'));
+    }
+    
+    $hash = password_hash($newPassword, PASSWORD_BCRYPT);
+    $stmt = $pdo->prepare('UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?');
+    $stmt->execute([$hash, $userId]);
+}
+
+/**
+ * Löscht einen Benutzer-Account (Admin-Funktion)
+ * @param int $adminId - ID des Admins
+ * @param int $userId - ID des Benutzers
+ */
+function admin_delete_user_account(int $adminId, int $userId): void {
+    $pdo = db();
+    $admin = get_user_by_id($adminId);
+    $target = get_user_by_id($userId);
+    
+    if (!$admin || !$target) {
+        throw new InvalidArgumentException(t('error_user_not_found'));
+    }
+    
+    // Prüfe Berechtigung
+    if (!user_has_min_role($adminId, 'admin')) {
+        throw new RuntimeException(t('error_permission_denied'));
+    }
+    
+    // Owner kann nicht von Admin gelöscht werden
+    if (strtolower($target['role']) === 'owner' && !user_has_role($adminId, 'owner')) {
+        throw new RuntimeException(t('error_cannot_delete_owner'));
+    }
+    
+    // Sich selbst löschen ist nicht erlaubt
+    if ($adminId === $userId) {
+        throw new RuntimeException(t('error_cannot_delete_self'));
+    }
+    
+    // Lösche den Benutzer (cascading deletes sollten konfiguriert sein)
     $stmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
     $stmt->execute([$userId]);
 }

@@ -114,6 +114,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
 
       <div class="account-grid">
+        <?php if (is_admin()): ?>
+        <!-- Admin-Kachel für Einstellungen -->
+        <div class="card" style="grid-column: 1 / -1;">
+          <h2 class="card-title"><?= e(t('admin_panel_title')) ?></h2>
+          <p style="color:var(--text-muted);margin-bottom:1.5rem;"><?= e(t('admin_panel_description')) ?></p>
+          <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+            <a href="/admin/" class="btn-primary" style="padding:0.75rem 1.5rem;text-decoration:none;">
+              <?= e(t('admin_settings_link')) ?>
+            </a>
+            <a href="/admin/users" class="btn-primary" style="padding:0.75rem 1.5rem;text-decoration:none;">
+              <?= e(t('manage_users')) ?>
+            </a>
+          </div>
+        </div>
+        <?php endif; ?>
+
         <form method="post" class="card">
           <h2 class="card-title"><?= e(t('profile_section')) ?></h2>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
