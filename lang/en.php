@@ -136,7 +136,7 @@ return [
     ,'lock_until' => 'Lock account until:'
     ,'date' => 'Date'
     ,'time' => 'Time'
-    ,'save' => 'Save'
+    ,'save' => 'Save',
     
     'passkeys_title' => 'Passkeys',
     'passkeys_description' => 'Sign in with biometric data or your device.',
