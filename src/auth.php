@@ -7,6 +7,8 @@ function register_user(string $name, string $username, string $email, string $pa
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         throw new InvalidArgumentException(t('error_invalid_email'));
     }
+
+ 
     if (!preg_match('/^[A-Za-z0-9_.-]{3,32}$/', $username)) {
         throw new InvalidArgumentException(t('error_invalid_username'));
     }
@@ -50,13 +52,137 @@ function register_user(string $name, string $username, string $email, string $pa
     }
 }
 
+function get_user_by_email(string $email): ?array {
+    $pdo = db();
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
+    $stmt->execute([$email]);
+    return $stmt->fetch() ?: null;
+}
+
+function create_email_verification(int $userId): string {
+    $pdo = db();
+    $pdo->exec("CREATE TABLE IF NOT EXISTS email_verifications (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id BIGINT UNSIGNED NOT NULL,
+        token VARCHAR(255) NOT NULL,
+        expires_at TIMESTAMP NULL,
+        created_at TIMESTAMP NULL,
+        UNIQUE KEY uq_email_verifications_token (token)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $expires = (new DateTimeImmutable('+1 day'))->format('Y-m-d H:i:s');
+    // Generate short 8-char token (hex of 4 random bytes) and retry on rare collisions
+    for ($i = 0; $i < 5; $i++) {
+        $token = strtoupper(bin2hex(random_bytes(4))); // 8 hex chars
+        try {
+            $stmt = $pdo->prepare('INSERT INTO email_verifications (user_id, token, expires_at, created_at) VALUES (?, ?, ?, NOW())');
+            $stmt->execute([$userId, $token, $expires]);
+            return $token;
+        } catch (Throwable $e) {
+            // On duplicate token, try again
+        }
+    }
+    // Fallback: last token attempt without catching (let it throw)
+    $token = strtoupper(bin2hex(random_bytes(4)));
+    $stmt = $pdo->prepare('INSERT INTO email_verifications (user_id, token, expires_at, created_at) VALUES (?, ?, ?, NOW())');
+    $stmt->execute([$userId, $token, $expires]);
+    return $token;
+}
+
+function verify_email_token(string $token): bool {
+    $pdo = db();
+    $stmt = $pdo->prepare('SELECT id, user_id, expires_at FROM email_verifications WHERE token = ? LIMIT 1');
+    $stmt->execute([$token]);
+    $row = $stmt->fetch();
+    if (!$row) return false;
+    if (!empty($row['expires_at']) && strtotime($row['expires_at']) < time()) {
+        $del = $pdo->prepare('DELETE FROM email_verifications WHERE id = ?');
+        $del->execute([(int)$row['id']]);
+        return false;
+    }
+    $pdo->beginTransaction();
+    try {
+        $u = $pdo->prepare('UPDATE users SET email_verified_at = NOW(), updated_at = NOW() WHERE id = ?');
+        $u->execute([(int)$row['user_id']]);
+        $del = $pdo->prepare('DELETE FROM email_verifications WHERE id = ?');
+        $del->execute([(int)$row['id']]);
+        $pdo->commit();
+        return true;
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        return false;
+    }
+}
+
+function create_email_change_request(int $userId, string $newEmail): string {
+    $pdo = db();
+    if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+        throw new InvalidArgumentException(t('error_invalid_email'));
+    }
+    $s = $pdo->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
+    $s->execute([$newEmail]);
+    if ($s->fetch()) {
+        throw new RuntimeException(t('email_already_exists'));
+    }
+    $pdo->exec("CREATE TABLE IF NOT EXISTS email_change_requests (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id BIGINT UNSIGNED NOT NULL,
+        new_email VARCHAR(255) NOT NULL,
+        token VARCHAR(255) NOT NULL,
+        expires_at TIMESTAMP NULL,
+        created_at TIMESTAMP NULL,
+        UNIQUE KEY uq_email_change_token (token)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $expires = (new DateTimeImmutable('+1 day'))->format('Y-m-d H:i:s');
+    // Generate short 8-char token and retry on collision
+    for ($i = 0; $i < 5; $i++) {
+        $token = strtoupper(bin2hex(random_bytes(4))); // 8 hex chars
+        try {
+            $ins = $pdo->prepare('INSERT INTO email_change_requests (user_id, new_email, token, expires_at, created_at) VALUES (?, ?, ?, ?, NOW())');
+            $ins->execute([$userId, $newEmail, $token, $expires]);
+            return $token;
+        } catch (Throwable $e) {
+            // try a new token on duplicate key
+        }
+    }
+    // Final attempt
+    $token = strtoupper(bin2hex(random_bytes(4)));
+    $ins = $pdo->prepare('INSERT INTO email_change_requests (user_id, new_email, token, expires_at, created_at) VALUES (?, ?, ?, ?, NOW())');
+    $ins->execute([$userId, $newEmail, $token, $expires]);
+    return $token;
+}
+
+function apply_email_change_from_token(string $token): bool {
+    $pdo = db();
+    $stmt = $pdo->prepare('SELECT id, user_id, new_email, expires_at FROM email_change_requests WHERE token = ? LIMIT 1');
+    $stmt->execute([$token]);
+    $row = $stmt->fetch();
+    if (!$row) return false;
+    if (!empty($row['expires_at']) && strtotime($row['expires_at']) < time()) {
+        $del = $pdo->prepare('DELETE FROM email_change_requests WHERE id = ?');
+        $del->execute([(int)$row['id']]);
+        return false;
+    }
+    $pdo->beginTransaction();
+    try {
+        $u = $pdo->prepare('UPDATE users SET email = ?, email_verified_at = NOW(), updated_at = NOW() WHERE id = ?');
+        $u->execute([(string)$row['new_email'], (int)$row['user_id']]);
+        $del = $pdo->prepare('DELETE FROM email_change_requests WHERE id = ?');
+        $del->execute([(int)$row['id']]);
+        $pdo->commit();
+        return true;
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        return false;
+    }
+}
+
 function authenticate_with_lockout(string $identifier, string $password): array {
     // Returns [bool success, ?string errorMessage]
     $pdo = db();
     $maxAttempts = defined('LOGIN_MAX_FAILED_ATTEMPTS') ? (int)LOGIN_MAX_FAILED_ATTEMPTS : 5;
     $lockMinutes = defined('LOGIN_LOCKOUT_MINUTES') ? (int)LOGIN_LOCKOUT_MINUTES : 10;
 
-    $stmt = $pdo->prepare('SELECT id, password, failed_logins, locked_until FROM users WHERE email = ? OR username = ? LIMIT 1');
+    $stmt = $pdo->prepare('SELECT id, password, failed_logins, locked_until, email_verified_at FROM users WHERE email = ? OR username = ? LIMIT 1');
     $stmt->execute([$identifier, $identifier]);
     $user = $stmt->fetch();
 
@@ -95,6 +221,12 @@ function authenticate_with_lockout(string $identifier, string $password): array 
         } catch (Throwable $e) {
             // if parse fails, ignore lock and continue
         }
+    }
+
+    // Block login if email not verified
+    if (empty($user['email_verified_at'])) {
+        $logAudit((int)$user['id'], false);
+        return [false, t('verification_failed')];
     }
 
     // Verify password
@@ -256,6 +388,50 @@ function update_password(int $userId, string $currentPassword, string $newPasswo
     $hash = password_hash($newPassword, PASSWORD_BCRYPT);
     $stmt = $pdo->prepare('UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?');
     $stmt->execute([$hash, $userId]);
+}
+
+function reset_password_and_email(string $identifier): void {
+    $identifier = trim($identifier);
+    if ($identifier === '') {
+        throw new InvalidArgumentException(t('login_failed'));
+    }
+    $pdo = db();
+    $stmt = $pdo->prepare('SELECT id, name, username, email, email_verified_at FROM users WHERE email = ? OR username = ? LIMIT 1');
+    $stmt->execute([$identifier, $identifier]);
+    $user = $stmt->fetch();
+    if (!$user) {
+        throw new RuntimeException(t('login_failed'));
+    }
+    if (empty($user['email_verified_at'])) {
+        throw new RuntimeException(t('verification_failed'));
+    }
+    $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    $len = strlen($alphabet);
+    $bytes = random_bytes(16);
+    $pwd = '';
+    for ($i = 0; $i < 12; $i++) {
+        $idx = ord($bytes[$i % 16]) % $len;
+        $pwd .= $alphabet[$idx];
+    }
+    $hash = password_hash($pwd, PASSWORD_BCRYPT);
+    $upd = $pdo->prepare('UPDATE users SET password = ?, failed_logins = 0, locked_until = NULL, updated_at = NOW() WHERE id = ?');
+    $upd->execute([$hash, (int)$user['id']]);
+    $toEmail = (string)$user['email'];
+    $toName = (string)($user['name'] ?: $user['username']);
+    $subject = 'Passwort zurückgesetzt - ' . APP_NAME;
+    $htmlBody = '<p>Hallo ' . e($toName) . ',</p>'
+        . '<p>dein Passwort wurde zurückgesetzt. Hier ist dein neues Passwort:</p>'
+        . '<p><strong style="font-family:monospace">' . e($pwd) . '</strong></p>'
+        . '<p>Du kannst dich jetzt mit diesem Passwort anmelden und es in deinem Konto ändern.</p>'
+        . '<p>Viele Grüße<br>' . e(APP_NAME) . '</p>';
+    $textBody = "Hallo $toName,\n\n"
+        . "dein Passwort wurde zurückgesetzt. Hier ist dein neues Passwort:\n"
+        . $pwd . "\n\n"
+        . "Du kannst dich jetzt mit diesem Passwort anmelden und es in deinem Konto ändern.\n\n"
+        . APP_NAME . "\n";
+    if (!@send_email($toEmail, $toName, $subject, $htmlBody, $textBody)) {
+        throw new RuntimeException(t('error_email_send_failed') ?? 'E-Mail-Versand fehlgeschlagen.');
+    }
 }
 
 function delete_user_account(int $userId): void {

@@ -1,0 +1,18 @@
+# Enable URL rewriting for pretty URLs
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Do not rewrite existing files or directories
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Redirect legacy underscore and .php variants to clean paths (preserve query string)
+  RewriteRule ^verify_email(?:\.php)?$ /verify-email [R=301,L,NE]
+  RewriteRule ^verify-email\.php$ /verify-email [R=301,L,NE]
+  RewriteRule ^confirm-email-change\.php$ /confirm-email-change [R=301,L,NE]
+
+  # Map clean paths to their PHP handlers
+  RewriteRule ^verify-email/?$ verify-email.php [L,QSA]
+  RewriteRule ^confirm-email-change/?$ confirm-email-change.php [L,QSA]
+</IfModule>

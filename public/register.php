@@ -27,8 +27,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 // Explizit 'user' als Rolle setzen für neue Registrierungen
                 register_user($name, $username, $email, $password, 'user');
-                authenticate($username ?: $email, $password);
-                header('Location: /');
+                // Hole neu angelegten Benutzer und erstelle Verifizierungstoken
+                $user = get_user_by_email($email);
+                if ($user) {
+                    $token = create_email_verification((int)$user['id']);
+                    $tokenDisplay = strtoupper(implode('-', str_split($token, 4))); // 4-4 Darstellung
+                    // E-Mail zusammensetzen (saubere URL ohne .php)
+                    $verifyLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/verify-email/?token=' . urlencode($token);
+                    $subject = t('verify_email_subject_prefix') . ' ' . APP_NAME;
+                    $htmlBody = '<p>' . e(t('verify_email_hello')) . '</p>'
+                        . '<p>' . e(t('verify_email_body_intro')) . ' ' . e(APP_NAME) . '.</p>'
+                        . '<p><strong>' . e(t('verify_email_code_label')) . ':</strong> ' . e($tokenDisplay) . '</p>'
+                        . '<p><a href="' . e($verifyLink) . '" target="_blank">' . e(t('verify_email_link_text')) . '</a></p>'
+                        . '<p>' . e(t('verify_email_thanks')) . '</p>';
+                    $textBody = t('verify_email_body_intro') . ' ' . APP_NAME . "\n" . t('verify_email_code_label') . ': ' . $tokenDisplay . "\n" . t('verify_email_link_text') . ': ' . $verifyLink;
+                    @send_email($email, $name ?: $username, $subject, $htmlBody, $textBody);
+                }
+                // Merke ausstehende Verifizierung und leite zur Verifizierungsseite
+                $_SESSION['pending_verification_email'] = $email;
+                header('Location: /verify-email/');
                 exit;
             } catch (Throwable $e) {
                 // Zeige benutzerfreundliche Fehlermeldung
@@ -72,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <div class="error-message"><?= e($err) ?></div>
             <?php endforeach; ?>
           </div>
-          <button type="button" class="error-close" onclick="this.parentElement.style.display='none'" aria-label="Schließen">
+          <button type="button" class="error-close" onclick="this.parentElement.style.display='none'" aria-label="<?= e(t('close')) ?>">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>

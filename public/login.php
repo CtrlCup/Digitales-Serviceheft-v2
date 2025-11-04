@@ -5,18 +5,30 @@ require_once __DIR__ . '/../src/bootstrap.php';
 $errors = [];
 $require2fa = false;
 $userId2fa = null;
+$offerReset = false;
+$identifierPrefill = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_validate($_POST['csrf'] ?? '')) {
         $errors[] = t('csrf_invalid');
     } else {
+        // Handle password reset request triggered from failed login
+        if (isset($_POST['action']) && $_POST['action'] === 'reset_password') {
+            $identifierPrefill = trim($_POST['identifier'] ?? '');
+            try {
+                reset_password_and_email($identifierPrefill);
+                $errors[] = 'Neues Passwort wurde per E-Mail gesendet. Bitte Posteingang prüfen.';
+            } catch (Throwable $e) {
+                $errors[] = $e->getMessage();
+            }
+        }
         // Check if this is 2FA verification
         if (isset($_POST['action']) && $_POST['action'] === 'verify_2fa') {
             $code = trim($_POST['2fa_code'] ?? '');
             $userId = (int)($_SESSION['2fa_user_id'] ?? 0);
             
             if (!$userId) {
-                $errors[] = 'Session expired. Please login again.';
+                $errors[] = t('session_expired_login_again');
             } elseif (empty($code)) {
                 $errors[] = t('2fa_code_required');
                 $require2fa = true;
@@ -58,10 +70,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $userId2fa = $userId;
                 }
             }
-        } else {
+        } else if (!isset($_POST['action'])) {
             // Regular login
             $identifier = trim($_POST['identifier'] ?? '');
             $password = $_POST['password'] ?? '';
+            $identifierPrefill = $identifier;
             [$ok, $err] = authenticate_with_lockout($identifier, $password);
             if ($ok) {
                 // Check if user has 2FA enabled
@@ -79,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } else {
                 $errors[] = $err ?: t('login_failed');
+                $offerReset = true;
             }
         }
     }
@@ -134,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <div class="error-message"><?= e($err) ?></div>
             <?php endforeach; ?>
           </div>
-          <button type="button" class="error-close" onclick="this.parentElement.style.display='none'" aria-label="Schließen">
+          <button type="button" class="error-close" onclick="this.parentElement.style.display='none'" aria-label="<?= e(t('close')) ?>">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
@@ -167,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               name="2fa_code" 
               required 
               autocomplete="off"
-              placeholder="000 000"
+              placeholder="<?= e(t('2fa_placeholder')) ?>"
               autofocus
               inputmode="numeric"
               maxlength="9"
@@ -237,13 +251,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <label>
             <span><?= e(t('identifier')) ?></span>
-            <input type="text" name="identifier" required autocomplete="username">
+            <input type="text" name="identifier" required autocomplete="username" value="<?= e($identifierPrefill) ?>">
           </label>
           <label>
             <span><?= e(t('password')) ?></span>
             <input type="password" name="password" required autocomplete="current-password">
           </label>
           <button type="submit" class="btn-primary"><?= e(t('login_button')) ?></button>
+
+          <?php if ($offerReset && $identifierPrefill !== ''): ?>
+            <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+              <button type="submit" name="action" value="reset_password" class="btn-secondary"><?php echo e('Passwort zurücksetzen'); ?></button>
+              <span style="font-size:0.875rem;color:var(--text-muted);">
+                <?php echo e('Du erhälst ein neues Passwort per E-Mail.'); ?>
+              </span>
+            </div>
+          <?php endif; ?>
           
           <div class="divider">
             <span><?= e(t('or_divider')) ?></span>
@@ -282,11 +305,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           passkeyBtn.addEventListener('click', async () => {
             try {
               passkeyBtn.disabled = true;
-              passkeyBtn.textContent = 'Verbinde...';
+              passkeyBtn.textContent = '<?= e(t('connecting')) ?>';
               
               // Get authentication options
               const optionsResponse = await fetch('/api/passkey-auth-options.php');
-              if (!optionsResponse.ok) throw new Error('Failed to get options');
+              if (!optionsResponse.ok) throw new Error('<?= e(t('passkey_get_options_failed')) ?>');
               
               const options = await optionsResponse.json();
               
@@ -303,7 +326,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 publicKey: publicKeyCredentialRequestOptions
               });
               
-              if (!credential) throw new Error('No credential selected');
+              if (!credential) throw new Error('<?= e(t('passkey_no_credential')) ?>');
               
               // Send to server for verification
               const verifyResponse = await fetch('/api/passkey-auth-verify.php', {
@@ -327,12 +350,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               if (result.success) {
                 window.location.href = '/';
               } else {
-                throw new Error(result.error || 'Authentication failed');
+                throw new Error(result.error || '<?= e(t('passkey_auth_failed_generic')) ?>');
               }
               
             } catch (error) {
               console.error('Passkey login error:', error);
-              alert('Passkey-Login fehlgeschlagen: ' + error.message);
+              alert('<?= e(t('passkey_login_failed')) ?>: ' + error.message);
               passkeyBtn.disabled = false;
               passkeyBtn.textContent = '<?= e(t('login_with_passkey')) ?>';
             }

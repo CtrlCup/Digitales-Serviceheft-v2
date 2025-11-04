@@ -14,6 +14,7 @@ require_once __DIR__ . '/i18n.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/mailer.php';
 
 // Load default locale first
 load_locale(APP_LOCALE);

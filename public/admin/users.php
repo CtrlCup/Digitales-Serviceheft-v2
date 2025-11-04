@@ -250,7 +250,7 @@ $currentUserLevel = get_role_level($currentUser['role']);
               <div class="error-message"><?= e($err) ?></div>
             <?php endforeach; ?>
           </div>
-          <button type="button" class="error-close" onclick="this.parentElement.style.display='none'" aria-label="Schließen">
+          <button type="button" class="error-close" onclick="this.parentElement.style.display='none'" aria-label="<?= e(t('close')) ?>">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
@@ -414,7 +414,7 @@ $currentUserLevel = get_role_level($currentUser['role']);
         <div id="lockModal" class="modal" aria-hidden="true">
           <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="lockModalTitle">
             <h3 id="lockModalTitle" style="margin-bottom:0.75rem;"><?= e(t('lock_account')) ?></h3>
-            <p style="color:var(--text-muted);margin-bottom:1rem;">Benutzer <strong id="lockUsername"></strong> sperren bis:</p>
+            <p style="color:var(--text-muted);margin-bottom:1rem;"><strong id="lockUsername"></strong> — <?= e(t('lock_until')) ?></p>
             <form id="lockForm" method="post">
               <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
               <input type="hidden" name="action" value="lock_account">
@@ -422,11 +422,11 @@ $currentUserLevel = get_role_level($currentUser['role']);
               <input type="hidden" name="lock" value="1">
               <div style="display:flex;gap:0.75rem;align-items:end;flex-wrap:wrap;margin-bottom:1rem;">
                 <label style="flex:1;min-width:180px;">
-                  <span style="display:block;margin-bottom:0.25rem;">Datum</span>
+                  <span style="display:block;margin-bottom:0.25rem;"><?= e(t('date')) ?></span>
                   <input type="date" id="lockDate" name="lock_date" required style="width:100%;padding:0.5rem;border:1px solid rgba(var(--color-border),0.5);border-radius:var(--radius-sm);">
                 </label>
                 <label style="width:150px;">
-                  <span style="display:block;margin-bottom:0.25rem;">Uhrzeit</span>
+                  <span style="display:block;margin-bottom:0.25rem;"><?= e(t('time')) ?></span>
                   <input type="time" id="lockTime" name="lock_time" required step="60" style="width:100%;padding:0.5rem;border:1px solid rgba(var(--color-border),0.5);border-radius:var(--radius-sm);">
                 </label>
               </div>
@@ -455,7 +455,7 @@ $currentUserLevel = get_role_level($currentUser['role']);
               </label>
               <div style="display:flex;gap:1rem;">
                 <button type="submit" class="btn-primary" style="flex:1;background:#007bff;border-color:#007bff;">
-                  Speichern
+                  <?= e(t('save')) ?>
                 </button>
                 <button type="button" onclick="closeEmailModal()" class="btn-cancel" style="flex:1;">
                   <?= e(t('cancel')) ?>
@@ -479,7 +479,7 @@ $currentUserLevel = get_role_level($currentUser['role']);
               </label>
               <div style="display:flex;gap:1rem;">
                 <button type="submit" class="btn-primary" style="flex:1;background:#6f42c1;border-color:#6f42c1;">
-                  Speichern
+                  <?= e(t('save')) ?>
                 </button>
                 <button type="button" onclick="closePasswordModal()" class="btn-cancel" style="flex:1;">
                   <?= e(t('cancel')) ?>

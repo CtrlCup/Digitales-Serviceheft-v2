@@ -229,4 +229,62 @@ return [
     'error_cannot_modify_owner' => 'Owner-Accounts können nicht modifiziert werden.',
     'error_cannot_delete_owner' => 'Owner-Accounts können nicht gelöscht werden.',
     'error_cannot_delete_self' => 'Sie können Ihren eigenen Account nicht löschen.',
+    
+    // Admin > Test-E-Mail
+    'test_email_card_title' => 'Test-E-Mail senden',
+    'test_email_card_description' => 'Sende eine Test-E-Mail über die konfigurierte SMTP-Verbindung.',
+    'test_email_recipient' => 'Empfänger',
+    'test_email_subject' => 'Betreff',
+    'test_email_message' => 'Nachricht',
+    'test_email_button' => 'Testmail senden',
+    'test_email_sent_success' => 'Test-E-Mail wurde gesendet an',
+    'test_email_send_failed' => 'Senden der Test-E-Mail ist fehlgeschlagen. Bitte SMTP-Konfiguration prüfen.',
+    'test_email_hint' => '',
+    'test_email_subject_prefix' => 'Test-E-Mail von',
+    'test_email_body_line1' => 'Hallo,',
+    'test_email_body_line2' => 'Dies ist eine Test-E-Mail von',
+    'test_email_body_line3' => 'Falls diese Mail ankommt, ist die SMTP-Konfiguration korrekt.',
+    
+    // Account confirmations & passkeys
+    'confirm_disable_2fa' => 'Möchtest du 2FA wirklich deaktivieren? Dies verringert die Sicherheit deines Kontos.',
+    'confirm_remove_passkey' => 'Möchtest du diesen Passkey wirklich entfernen?',
+    'passkey_default_prefix' => 'Passkey #',
+    
+    // Login & 2FA
+    'session_expired_login_again' => 'Sitzung abgelaufen. Bitte neu anmelden.',
+    '2fa_placeholder' => '000 000',
+    
+    // Passkey auth (JS/ui)
+    'connecting' => 'Verbinde...'
+    ,'passkey_login_failed' => 'Passkey-Login fehlgeschlagen'
+    ,'passkey_get_options_failed' => 'Abrufen der Optionen fehlgeschlagen'
+    ,'passkey_no_credential' => 'Kein Anmeldedatensatz ausgewählt'
+    ,'passkey_auth_failed_generic' => 'Authentifizierung fehlgeschlagen'
+    ,'close' => 'Schließen'
+    ,'lock_until' => 'Account sperren bis:'
+    ,'date' => 'Datum'
+    ,'time' => 'Uhrzeit'
+    ,'save' => 'Speichern',
+
+    // Registrierung: E-Mail-Verifizierung
+    'verify_email_page_title' => 'E-Mail bestätigen',
+    'verify_email_intro' => 'Wir haben dir eine E-Mail mit einem Bestätigungscode und einem Link gesendet.',
+    'verify_email_enter_code' => 'Bestätigungscode eingeben',
+    'verify_email_submit' => 'E-Mail bestätigen',
+    'verify_email_subject_prefix' => 'E-Mail bestätigen für',
+    'verify_email_hello' => 'Hallo!',
+    'verify_email_body_intro' => 'Bitte bestätige deine E-Mail-Adresse für',
+    'verify_email_code_label' => 'Dein Bestätigungscode',
+    'verify_email_link_text' => 'Hier klicken, um zu bestätigen',
+    'verify_email_thanks' => 'Vielen Dank!',
+    'verification_success' => 'Deine E-Mail-Adresse wurde erfolgreich bestätigt.',
+    'verification_failed' => 'Ungültiger oder abgelaufener Code. Bitte erneut versuchen.',
+
+    // E-Mail-Änderung per Link
+    'email_change_subject_prefix' => 'E-Mail-Adresse bestätigen',
+    'email_change_body_intro' => 'Bitte bestätige die Änderung deiner E-Mail-Adresse.',
+    'email_change_link_text' => 'E-Mail-Änderung bestätigen',
+    'email_change_requested' => 'Wir haben dir eine E-Mail mit einem Link gesendet, um die neue E-Mail-Adresse zu bestätigen.',
+    'email_change_success' => 'Deine E-Mail-Adresse wurde erfolgreich geändert.',
+    'email_change_invalid' => 'Der Bestätigungslink ist ungültig oder abgelaufen.'
 ];

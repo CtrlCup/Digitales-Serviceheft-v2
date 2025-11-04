@@ -102,6 +102,42 @@ return [
     '2fa_code_label' => '2FA Code',
     '2fa_or_recovery_code' => 'Alternatively, you can enter an emergency recovery code (Format: 1234-5678).',
     
+    // Admin > Test Email
+    'test_email_card_title' => 'Send Test Email',
+    'test_email_card_description' => 'Send a test email using the configured SMTP connection.',
+    'test_email_recipient' => 'Recipient',
+    'test_email_subject' => 'Subject',
+    'test_email_message' => 'Message',
+    'test_email_button' => 'Send test email',
+    'test_email_sent_success' => 'Test email was sent to',
+    'test_email_send_failed' => 'Sending test email failed. Please check SMTP configuration.',
+    'test_email_hint' => 'Note: Set SMTP in src/config.php (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_ENCRYPTION, SMTP_FROM_EMAIL, SMTP_FROM_NAME).',
+    'test_email_subject_prefix' => 'Test email from',
+    'test_email_body_line1' => 'Hello,',
+    'test_email_body_line2' => 'This is a test email from',
+    'test_email_body_line3' => 'If this email arrives, the SMTP configuration is correct.',
+
+    // Account confirmations & passkeys
+    'confirm_disable_2fa' => 'Do you really want to disable 2FA? This reduces the security of your account.',
+    'confirm_remove_passkey' => 'Do you really want to remove this passkey?',
+    'passkey_default_prefix' => 'Passkey #',
+
+    // Login & 2FA
+    'session_expired_login_again' => 'Session expired. Please login again.',
+    '2fa_placeholder' => '000 000',
+
+    // Passkey auth (JS/ui)
+    'connecting' => 'Connecting...'
+    ,'passkey_login_failed' => 'Passkey login failed'
+    ,'passkey_get_options_failed' => 'Failed to get options'
+    ,'passkey_no_credential' => 'No credential selected'
+    ,'passkey_auth_failed_generic' => 'Authentication failed'
+    ,'close' => 'Close'
+    ,'lock_until' => 'Lock account until:'
+    ,'date' => 'Date'
+    ,'time' => 'Time'
+    ,'save' => 'Save'
+    
     'passkeys_title' => 'Passkeys',
     'passkeys_description' => 'Sign in with biometric data or your device.',
     'passkeys_none' => 'No passkeys registered',
@@ -191,4 +227,27 @@ return [
     'actions' => 'Actions',
     'registered_at' => 'Registered on',
     'you' => 'You',
+    
+    // Registration: Email Verification
+    'verify_email_page_title' => 'Verify Email',
+    'verify_email_intro' => 'We have sent you an email with a verification code and a link.',
+    'verify_email_enter_code' => 'Enter verification code',
+    'verify_email_submit' => 'Verify email',
+    'verify_email_subject_prefix' => 'Verify email for',
+    'verify_email_hello' => 'Hello!',
+    'verify_email_body_intro' => 'Please verify your email address for',
+    'verify_email_code_label' => 'Your verification code',
+    'verify_email_link_text' => 'Click here to verify',
+    'verify_email_thanks' => 'Thank you!',
+    'verification_success' => 'Your email address has been verified successfully.',
+    'verification_failed' => 'Invalid or expired code. Please try again.',
+
+    // Email change by link
+    'email_change_subject_prefix' => 'Confirm email address',
+    'email_change_body_intro' => 'Please confirm changing your email address.',
+    'email_change_link_text' => 'Confirm email change',
+    'email_change_requested' => 'We sent you an email with a link to confirm your new email address.',
+    'email_change_success' => 'Your email address has been changed successfully.',
+    'email_change_invalid' => 'The confirmation link is invalid or has expired.',
+    
 ];

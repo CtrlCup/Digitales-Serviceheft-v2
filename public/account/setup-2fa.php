@@ -197,7 +197,7 @@ $qrCodeUrl = $_SESSION['2fa_setup_qr'] ?? '';
                 autocomplete="off"
                 pattern="[0-9]{6}"
                 maxlength="7"
-                placeholder="000 000"
+                placeholder="<?= e(t('2fa_placeholder')) ?>"
                 inputmode="numeric"
                 style="font-family:'Courier New',monospace;font-size:1.2rem;letter-spacing:0.3rem;text-align:center;">
             </label>

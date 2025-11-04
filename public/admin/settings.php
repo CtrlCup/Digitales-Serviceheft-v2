@@ -19,6 +19,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newValue = $currentValue === '1' ? '0' : '1';
                 set_site_setting('registration_enabled', $newValue);
                 $message = $newValue === '1' ? t('registration_enabled_success') : t('registration_disabled_success');
+            } elseif (isset($_POST['action']) && $_POST['action'] === 'send_test_email') {
+                $to = trim($_POST['to'] ?? '');
+                $subject = trim($_POST['subject'] ?? (t('test_email_subject_prefix') . ' ' . APP_NAME));
+                $body = trim($_POST['body'] ?? t('test_email_body_line2') . ' ' . APP_NAME);
+                if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+                    throw new InvalidArgumentException(t('error_invalid_email'));
+                }
+                $ok = send_email($to, '', $subject, nl2br($body), $body);
+                if ($ok) {
+                    $message = t('test_email_sent_success') . ' ' . e($to);
+                } else {
+                    throw new RuntimeException(t('test_email_send_failed'));
+                }
             }
         } catch (Throwable $e) {
             $errors[] = $e->getMessage();
@@ -45,7 +58,7 @@ $registrationEnabled = get_site_setting('registration_enabled', '1') === '1';
     ]
   ]); ?>
   <main class="page-content">
-    <div class="container reveal-enter">
+    <div class="container-wide reveal-enter">
 
       <?php if ($errors): ?>
         <div class="error-notification" id="error-toast">
@@ -61,7 +74,7 @@ $registrationEnabled = get_site_setting('registration_enabled', '1') === '1';
               <div class="error-message"><?= e($err) ?></div>
             <?php endforeach; ?>
           </div>
-          <button type="button" class="error-close" onclick="this.parentElement.style.display='none'" aria-label="Schließen">
+          <button type="button" class="error-close" onclick="this.parentElement.style.display='none'" aria-label="<?= e(t('close')) ?>">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
@@ -106,6 +119,34 @@ $registrationEnabled = get_site_setting('registration_enabled', '1') === '1';
               </button>
             </div>
           </form>
+        </div>
+        
+        <!-- Test-E-Mail senden -->
+        <div class="card">
+          <h2 class="card-title" style="margin-bottom:1rem;"><?= e(t('test_email_card_title')) ?></h2>
+          <p style="color:var(--text-muted);margin-bottom:1.5rem;"><?= e(t('test_email_card_description')) ?></p>
+          <form method="post">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="send_test_email">
+            <label>
+              <span><?= e(t('test_email_recipient')) ?></span>
+              <input type="email" name="to" required value="<?= e($user['email'] ?? (defined('ADMIN_EMAIL') ? ADMIN_EMAIL : '')) ?>" autocomplete="email">
+            </label>
+            <label>
+              <span><?= e(t('test_email_subject')) ?></span>
+              <input type="text" name="subject" value="<?= e(t('test_email_subject_prefix') . ' ' . APP_NAME) ?>">
+            </label>
+            <label>
+              <span><?= e(t('test_email_message')) ?></span>
+              <textarea name="body" rows="6"><?= e(t('test_email_body_line1')) ?>
+
+<?= e(t('test_email_body_line2') . ' ' . APP_NAME) ?>
+
+<?= e(t('test_email_body_line3')) ?></textarea>
+            </label>
+            <button type="submit" class="btn-primary" style="padding:0.75rem 1.5rem;align-self:flex-start;"><?= e(t('test_email_button')) ?></button>
+          </form>
+          <p style="color:var(--text-muted);margin-top:0.75rem;font-size:0.9rem;"><?= e(t('test_email_hint')) ?></p>
         </div>
 
       </div>

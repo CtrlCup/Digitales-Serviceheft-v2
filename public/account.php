@@ -23,9 +23,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $name = trim($_POST['name'] ?? '');
                 $username = trim($_POST['username'] ?? '');
                 $email = trim($_POST['email'] ?? '');
-                update_profile((int)$user['id'], $name, $username, $email);
-                $profile_message = t('profile_saved');
-                $user = current_user(); // reload
+                $oldEmail = (string)($user['email'] ?? '');
+                if ($email !== $oldEmail) {
+                    // Apply name/username changes but keep old email in DB
+                    update_profile((int)$user['id'], $name, $username, $oldEmail);
+                    // Create email change request and send confirmation link to NEW email
+                    $token = create_email_change_request((int)$user['id'], $email);
+                    $confirmLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/confirm-email-change/?token=' . urlencode($token);
+                    $subject = t('email_change_subject_prefix') . ' ' . APP_NAME;
+                    $htmlBody = '<p>' . e(t('verify_email_hello')) . '</p>'
+                        . '<p>' . e(t('email_change_body_intro')) . '</p>'
+                        . '<p><a href="' . e($confirmLink) . '" target="_blank">' . e(t('email_change_link_text')) . '</a></p>'
+                        . '<p>' . e(t('verify_email_thanks')) . '</p>';
+                    $textBody = t('email_change_body_intro') . "\n" . t('email_change_link_text') . ': ' . $confirmLink;
+                    $sent = send_email($email, $name ?: $username, $subject, $htmlBody, $textBody);
+                    if ($sent) {
+                        $profile_message = t('email_change_requested');
+                    } else {
+                        $errors[] = 'E-Mail konnte nicht gesendet werden.';
+                    }
+                    $user = current_user(); // reload
+                } else {
+                    update_profile((int)$user['id'], $name, $username, $email);
+                    $profile_message = t('profile_saved');
+                    $user = current_user(); // reload
+                }
             } elseif (isset($_POST['action']) && $_POST['action'] === 'password') {
                 $current = $_POST['current_password'] ?? '';
                 $new = $_POST['new_password'] ?? '';
@@ -113,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <div class="error-message"><?= e($err) ?></div>
             <?php endforeach; ?>
           </div>
-          <button type="button" class="error-close" onclick="this.parentElement.style.display='none'" aria-label="Schließen">
+          <button type="button" class="error-close" onclick="this.parentElement.style.display='none'" aria-label="<?= e(t('close')) ?>">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
@@ -147,27 +169,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="post" class="card">
           <h2 class="card-title"><?= e(t('profile_section')) ?></h2>
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="action" value="profile">
-        <label>
-          <span><?= e(t('name')) ?></span>
-          <input type="text" name="name" value="<?= e($user['name'] ?? '') ?>" required autocomplete="name">
-        </label>
-        <label>
-          <span><?= e(t('username')) ?></span>
-          <input type="text" name="username" value="<?= e($user['username'] ?? '') ?>" required autocomplete="username">
-        </label>
-        <label>
-          <span><?= e(t('email')) ?></span>
-          <input type="email" name="email" value="<?= e($user['email'] ?? '') ?>" required autocomplete="email">
-        </label>
-        <button type="submit" class="btn-primary"><?= e(t('save_profile')) ?></button>
-        <?php if ($profile_message): ?>
-          <div class="alert success-message mt-1">
-            <?= e($profile_message) ?>
-          </div>
-        <?php endif; ?>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="profile">
+          <label>
+            <span><?= e(t('name')) ?></span>
+            <input type="text" name="name" value="<?= e($user['name'] ?? '') ?>" required autocomplete="name">
+          </label>
+          <label>
+            <span><?= e(t('username')) ?></span>
+            <input type="text" name="username" value="<?= e($user['username'] ?? '') ?>" required autocomplete="username">
+          </label>
+          <label>
+            <span><?= e(t('email')) ?></span>
+            <input type="email" name="email" value="<?= e($user['email'] ?? '') ?>" required autocomplete="email">
+          </label>
+          <button type="submit" class="btn-primary"><?= e(t('save_profile')) ?></button>
+          <?php if ($profile_message): ?>
+            <div class="alert success-message mt-1">
+              <?= e($profile_message) ?>
+            </div>
+          <?php endif; ?>
         </form>
+        
 
         <form method="post" class="card">
           <h2 class="card-title"><?= e(t('password_section')) ?></h2>
@@ -193,7 +216,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         </form>
 
-        <div class="card">
+        <!-- Language Preference (after password) -->
+        <form method="post" class="card">
+          <h2 class="card-title"><?= e(t('language_settings_title')) ?></h2>
+          <p style="color:var(--text-muted);margin-bottom:1rem;">&nbsp;<?= e(t('language_settings_description')) ?></p>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="language">
+          <label>
+            <span><?= e(t('language_label')) ?></span>
+            <?php $currentLocale = $user['locale'] ?: APP_LOCALE; ?>
+            <select name="locale" required>
+              <option value="de" <?= $currentLocale === 'de' ? 'selected' : '' ?>><?= e(t('language_de')) ?></option>
+              <option value="en" <?= $currentLocale === 'en' ? 'selected' : '' ?>><?= e(t('language_en')) ?></option>
+            </select>
+          </label>
+          <button type="submit" class="btn-primary"><?= e(t('language_save_button')) ?></button>
+          <?php if ($language_message): ?>
+            <div class="alert success-message mt-1">
+              <?= e($language_message) ?>
+            </div>
+          <?php endif; ?>
+        </form>
+
+        <div class="card" style="grid-column: 1 / -1;">
           <h2 class="card-title"><?= e(t('security_section')) ?></h2>
         
         <?php if ($security_message): ?>
@@ -211,7 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <?= e(t('2fa_status_' . ($has2fa ? 'enabled' : 'disabled'))) ?>
             </span>
             <?php if ($has2fa): ?>
-              <form method="post" style="display:inline;" onsubmit="return confirm('Möchtest du 2FA wirklich deaktivieren? Dies verringert die Sicherheit deines Kontos.');">
+              <form method="post" style="display:inline;" onsubmit="return confirm('<?= e(t('confirm_disable_2fa')) ?>');">
                 <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="action" value="disable_2fa">
                 <button type="submit" class="btn-primary" style="padding:0.5rem 1rem;background:#dc3545;border-color:#dc3545;">
@@ -240,7 +285,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <?php foreach ($passkeys as $pk): ?>
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem;background:var(--bg-secondary);border-radius:0.5rem;margin-bottom:0.5rem;">
                   <div>
-                    <div style="font-weight:500;"><?= e($pk['name'] ?: 'Passkey #' . $pk['id']) ?></div>
+                    <div style="font-weight:500;"><?= e($pk['name'] ?: (t('passkey_default_prefix') . (string)$pk['id'])) ?></div>
                     <div style="font-size:0.875rem;color:var(--text-muted);">
                       <?php if ($pk['last_used_at']): ?>
                         <?= e(t('passkey_last_used')) ?> <?= e(date('d.m.Y H:i', strtotime($pk['last_used_at']))) ?>
@@ -249,7 +294,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       <?php endif; ?>
                     </div>
                   </div>
-                  <form method="post" style="display:inline;" onsubmit="return confirm('Möchtest du diesen Passkey wirklich entfernen?');">
+                  <form method="post" style="display:inline;" onsubmit="return confirm('<?= e(t('confirm_remove_passkey')) ?>');">
                     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="action" value="remove_passkey">
                     <input type="hidden" name="passkey_id" value="<?= e((string)$pk['id']) ?>">
@@ -267,27 +312,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </a>
         </div>
 
-        <!-- Language Preference -->
-        <form method="post" class="card">
-          <h2 class="card-title"><?= e(t('language_settings_title')) ?></h2>
-          <p style="color:var(--text-muted);margin-bottom:1rem;">&nbsp;<?= e(t('language_settings_description')) ?></p>
-          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-          <input type="hidden" name="action" value="language">
-          <label>
-            <span><?= e(t('language_label')) ?></span>
-            <?php $currentLocale = $user['locale'] ?: APP_LOCALE; ?>
-            <select name="locale" required>
-              <option value="de" <?= $currentLocale === 'de' ? 'selected' : '' ?>><?= e(t('language_de')) ?></option>
-              <option value="en" <?= $currentLocale === 'en' ? 'selected' : '' ?>><?= e(t('language_en')) ?></option>
-            </select>
-          </label>
-          <button type="submit" class="btn-primary"><?= e(t('language_save_button')) ?></button>
-          <?php if ($language_message): ?>
-            <div class="alert success-message mt-1">
-              <?= e($language_message) ?>
-            </div>
-          <?php endif; ?>
-        </form>
 
         <!-- Account Deletion Section -->
         <div style="margin-top:3rem;padding-top:2rem;border-top:2px solid rgba(var(--color-border), 0.5);">
