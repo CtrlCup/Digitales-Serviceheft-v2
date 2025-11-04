@@ -7,6 +7,7 @@ $user = current_user();
 $profile_message = '';
 $password_message = '';
 $security_message = '';
+$language_message = '';
 $errors = [];
 
 // Get 2FA and Passkeys status
@@ -41,6 +42,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $security_message = t('passkey_removed_success');
                     $passkeys = get_user_passkeys((int)$user['id']);
                 }
+            } elseif (isset($_POST['action']) && $_POST['action'] === 'language') {
+                $locale = trim($_POST['locale'] ?? '');
+                // allow-list locales available
+                $allowed = ['de','en'];
+                if (!in_array($locale, $allowed, true)) {
+                    throw new InvalidArgumentException('Invalid locale');
+                }
+                $pdo = db();
+                $stmt = $pdo->prepare('UPDATE users SET locale = ?, updated_at = NOW() WHERE id = ?');
+                $stmt->execute([$locale, (int)$user['id']]);
+                $language_message = t('language_saved_success');
+                // Reload translations for this request
+                load_locale($locale);
+                $user = current_user();
             } elseif (isset($_POST['action']) && $_POST['action'] === 'delete_account') {
                 $confirmEmail = trim($_POST['confirm_email'] ?? '');
                 if ($confirmEmail === $user['email']) {
@@ -251,7 +266,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?= e(t('passkey_add_button')) ?>
           </a>
         </div>
-        
+
+        <!-- Language Preference -->
+        <form method="post" class="card">
+          <h2 class="card-title"><?= e(t('language_settings_title')) ?></h2>
+          <p style="color:var(--text-muted);margin-bottom:1rem;">&nbsp;<?= e(t('language_settings_description')) ?></p>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="language">
+          <label>
+            <span><?= e(t('language_label')) ?></span>
+            <?php $currentLocale = $user['locale'] ?: APP_LOCALE; ?>
+            <select name="locale" required>
+              <option value="de" <?= $currentLocale === 'de' ? 'selected' : '' ?>><?= e(t('language_de')) ?></option>
+              <option value="en" <?= $currentLocale === 'en' ? 'selected' : '' ?>><?= e(t('language_en')) ?></option>
+            </select>
+          </label>
+          <button type="submit" class="btn-primary"><?= e(t('language_save_button')) ?></button>
+          <?php if ($language_message): ?>
+            <div class="alert success-message mt-1">
+              <?= e($language_message) ?>
+            </div>
+          <?php endif; ?>
+        </form>
+
         <!-- Account Deletion Section -->
         <div style="margin-top:3rem;padding-top:2rem;border-top:2px solid rgba(var(--color-border), 0.5);">
           <h3 style="font-size:1.1rem;margin-bottom:0.5rem;color:rgb(239, 68, 68);"><?= e(t('delete_account_title')) ?></h3>

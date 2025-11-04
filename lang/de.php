@@ -69,6 +69,15 @@ return [
     'invalid_username' => 'Ungültiger Benutzername. Nur Buchstaben, Zahlen, Punkt, Unterstrich und Bindestrich sind erlaubt (3-32 Zeichen).',
     'invalid_name' => 'Name muss mindestens 2 Zeichen lang sein.',
     
+    // Sprache / Language Settings
+    'language_settings_title' => 'Sprache',
+    'language_settings_description' => 'Lege die Anzeigesprache der Benutzeroberfläche fest.',
+    'language_label' => 'Sprache auswählen',
+    'language_save_button' => 'Sprache speichern',
+    'language_saved_success' => 'Sprache wurde gespeichert. Die Seite zeigt nun die gewählte Sprache an.',
+    'language_de' => 'Deutsch',
+    'language_en' => 'Englisch',
+    
     // Availability Check
     'availability_error' => 'Bitte korrigiere die markierten Felder, bevor du speicherst.',
     'availability_error_register' => 'Bitte wähle einen verfügbaren Benutzernamen und eine verfügbare E-Mail-Adresse.',
