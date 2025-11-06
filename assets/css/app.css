@@ -279,7 +279,7 @@ html.light .logo-dark {
 /* Dezenter Danger-Button im selben Stil */
 .btn-danger {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-  padding: clamp(0.55rem, 1vh, 0.75rem) clamp(1rem, 2vw, 1.25rem);
+  padding: clamp(0.6rem, 1vh, 0.8rem) clamp(1.05rem, 2vw, 1.3rem);
   border: 1.5px solid rgba(220, 38, 38, 0.35);
   border-radius: 9999px; /* pill like in screenshot */
   font-weight: 700; font-size: clamp(0.875rem, 1.3vh, 1rem);
@@ -287,10 +287,12 @@ html.light .logo-dark {
   background: rgba(220, 38, 38, 0.9);
   color: #fff;
   transition: all var(--dur-fast) var(--ease);
+  box-shadow: 0 6px 22px rgba(220, 38, 38, 0.35);
 }
 .btn-danger:hover {
   background: rgba(220, 38, 38, 1);
   border-color: rgba(220, 38, 38, 0.6);
+  box-shadow: 0 8px 26px rgba(220, 38, 38, 0.45);
 }
 .dark .btn-danger {
   background: rgba(239, 68, 68, 0.9);
@@ -299,6 +301,39 @@ html.light .logo-dark {
 .dark .btn-danger:hover {
   background: rgba(239, 68, 68, 1);
   border-color: rgba(239, 68, 68, 0.7);
+}
+
+/* Make header-link-with-text usable on <button> too */
+button.header-link-with-text {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: clamp(0.4rem, 1vh, 0.6rem) clamp(0.75rem, 1.6vw, 1.1rem);
+  border: 1.5px solid rgba(var(--color-border), 0.8);
+  border-radius: 9999px;
+  background: rgba(var(--color-fg), 0.06);
+  color: rgb(var(--color-fg));
+  font-weight: 700;
+  cursor: pointer;
+}
+button.header-link-with-text:hover {
+  background: rgba(var(--color-fg), 0.1);
+  border-color: rgba(var(--color-primary), 0.5);
+}
+.dark button.header-link-with-text {
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+}
+.dark button.header-link-with-text:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+/* Danger variant for header-link-with-text */
+.header-link-with-text.danger {
+  border-color: rgba(239, 68, 68, 0.45) !important;
+  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.12) !important;
+}
+.header-link-with-text.danger:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
 }
 
 .btn-cta {

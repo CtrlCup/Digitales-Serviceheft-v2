@@ -55,13 +55,14 @@ try {
   ]); ?>
   <main class="page-content">
     <div class="container reveal-enter">
-      <a href="/vehicles/view?id=<?= e((string)$id) ?>" class="header-link-with-text" style="margin-bottom:1rem;">
-        <?= icon_svg('arrow-left') ?>
-        <span class="link-text">Zurück zur Detailansicht</span>
-      </a>
-
-      <div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem;">
-        <button type="button" class="btn-danger" id="open-delete-modal">Entfernen</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:0.5rem;">
+        <a href="/vehicles/view?id=<?= e((string)$id) ?>" class="header-link-with-text">
+          <?= icon_svg('arrow-left') ?>
+          <span class="link-text">Zurück zur Detailansicht</span>
+        </a>
+        <button type="button" id="open-delete-modal" class="header-link-with-text danger">
+          <span class="link-text">Entfernen</span>
+        </button>
       </div>
 
       <?php if ($error): ?>
@@ -179,7 +180,7 @@ try {
     </div>
   </main>
 
-  <div id="delete-modal" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:1000;">
+  <div id="delete-modal" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:4000;">
     <div style="width:min(92vw,560px);background:var(--bg-card, #0b1220);color:rgb(var(--color-fg));border-radius:18px;padding:1.25rem;box-shadow:0 10px 30px rgba(0,0,0,0.35);">
       <h2 style="margin:0 0 0.5rem 0;color:#ef4444;">Bist du dir sicher?</h2>
       <p style="margin:0 0 0.75rem 0;">Diese Aktion löscht dieses Fahrzeug unwiderruflich. Bilddatei und alle zugehörigen Einträge werden entfernt.</p>
@@ -203,7 +204,7 @@ try {
       var cancelBtn = document.getElementById('cancel-delete');
       var input = document.getElementById('delete-confirm-input');
       var submitBtn = document.getElementById('confirm-delete');
-      if (openBtn) openBtn.addEventListener('click', function(){ modal.style.display = 'flex'; setTimeout(function(){ input && input.focus(); }, 50); });
+      if (openBtn) openBtn.addEventListener('click', function(ev){ ev.preventDefault(); modal.style.display = 'flex'; setTimeout(function(){ input && input.focus(); }, 50); });
       if (cancelBtn) cancelBtn.addEventListener('click', function(){ modal.style.display = 'none'; if (input) { input.value=''; submitBtn.disabled=true; } });
       if (input) input.addEventListener('input', function(){ submitBtn.disabled = (input.value.trim() !== 'LÖSCHEN'); });
     })();
