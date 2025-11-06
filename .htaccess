@@ -11,19 +11,28 @@ DirectoryIndex index.php index.html
     Deny from all
 </FilesMatch>
 
-# Block direct access to /public/ and /src/ directories
-RewriteRule ^(public|src)/.*$ - [F,L]
+# Block direct access to /src/ directory, but allow /public
+RewriteRule ^src/.*$ - [F,L]
 
-# Remove .php extension from URLs
-# Redirect /file.php to /file
-RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s([^.]+)\.php [NC]
-RewriteRule ^ %1 [R=301,L]
+# Redirect / to /public/ if index there exists
+RewriteRule ^$ public/ [L]
 
-# Rewrite /file to /file.php if file.php exists
-RewriteCond %{REQUEST_FILENAME} !-d
+# Canonicalize vehicles overview and explicit mapping for /overview
+RewriteRule ^vehicles/overview/?$ /overview [R=301,L,NE]
+RewriteRule ^overview/?$ public/vehicles/overview.php [L,QSA]
+
+# Clean URLs mapped into /public
+# 1) If a matching file exists under /public, serve it
 RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME}.php -f
-RewriteRule ^(.+)$ $1.php [L]
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{DOCUMENT_ROOT}/public/%{REQUEST_URI} -f
+RewriteRule ^(.*)$ public/$1 [L]
+
+# 2) If a matching .php exists under /public, serve it
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{DOCUMENT_ROOT}/public/$1.php -f
+RewriteRule ^(.+)$ public/$1.php [L,QSA]
 
 # Prevent directory listing
 Options -Indexes
@@ -43,3 +52,4 @@ AddType image/x-icon .ico
     ExpiresByType text/css "access plus 1 month"
     ExpiresByType application/javascript "access plus 1 month"
 </IfModule>
+

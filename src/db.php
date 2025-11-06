@@ -13,3 +13,27 @@ function db(): PDO {
     ]);
     return $pdo;
 }
+
+/**
+ * Separate connection for vehicles database.
+ * Uses VEH_DB_* constants when available; otherwise falls back to primary DB settings.
+ */
+function vehicle_db(): PDO {
+    static $vpdo = null;
+    if ($vpdo instanceof PDO) {
+        return $vpdo;
+    }
+
+    $host = defined('VEH_DB_HOST') ? VEH_DB_HOST : (defined('DB_HOST') ? DB_HOST : 'localhost');
+    $port = defined('VEH_DB_PORT') ? VEH_DB_PORT : (defined('DB_PORT') ? DB_PORT : '3306');
+    $name = defined('VEH_DB_NAME') ? VEH_DB_NAME : (defined('DB_NAME') ? DB_NAME : '');
+    $user = defined('VEH_DB_USER') ? VEH_DB_USER : (defined('DB_USER') ? DB_USER : '');
+    $pass = defined('VEH_DB_PASS') ? VEH_DB_PASS : (defined('DB_PASS') ? DB_PASS : '');
+
+    $dsn = 'mysql:host=' . $host . ';port=' . $port . ';dbname=' . $name . ';charset=utf8mb4';
+    $vpdo = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ]);
+    return $vpdo;
+}

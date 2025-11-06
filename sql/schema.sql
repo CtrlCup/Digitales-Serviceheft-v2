@@ -80,3 +80,8 @@ CREATE TABLE IF NOT EXISTS login_audit (
   KEY idx_login_audit_user (user_id),
   KEY idx_login_audit_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Migrationen laden (vollständiges Fahrten- und Servicebuch-Schema)
+--
+SOURCE ./migration_2025-11-04.sql;
