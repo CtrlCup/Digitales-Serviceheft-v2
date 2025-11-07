@@ -50,17 +50,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endforeach; ?>
           </ul>
         </div>
+        </div>
       <?php endif; ?>
 
       <form method="post" action="/vehicles/create" enctype="multipart/form-data" novalidate>
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
+        <style>
+          .cards-grid { display:grid; gap:1rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items:start; }
+          @media (max-width: 420px) { .cards-grid { grid-template-columns: 1fr; } }
+          .cards-grid .card { height: 100%; }
+        </style>
+        <div class="cards-grid">
         <div class="card">
           <h2 class="card-title">Fahrzeugdaten</h2>
           <div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;">
             <label>
               <span>FIN (VIN)</span>
-              <input type="text" name="vin" value="<?= e($values['vin'] ?? '') ?>">
+              <input type="text" name="vin" maxlength="17" pattern="[A-HJ-NPR-Z0-9]{1,17}" value="<?= e($values['vin'] ?? '') ?>">
             </label>
             <label>
               <span>Kennzeichen</span>
@@ -75,8 +82,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <input type="text" name="model" required value="<?= e($values['model'] ?? '') ?>">
             </label>
             <label>
-              <span>Baujahr (YYYY)</span>
-              <input type="number" name="year" inputmode="numeric" pattern="\d{4}" min="1900" max="2100" value="<?= e($values['year'] ?? '') ?>">
+              <span>Erstzulassung (TT.MM.JJJJ)</span>
+              <input type="text" name="first_registration" inputmode="numeric" placeholder="z.B. 23.09.1999" value="<?= e($values['first_registration'] ?? '') ?>">
             </label>
             <label>
               <span>Farbe</span>
@@ -85,6 +92,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <label>
               <span>Profilbild (JPG/PNG/WEBP, max. 5 MB)</span>
               <input type="file" name="profile_image" accept="image/jpeg,image/png,image/webp">
+              <input type="hidden" name="profile_image_path" id="profile_image_path_create" value="">
+              <div id="upload_wrap_create" style="margin-top:0.5rem;display:none;gap:0.5rem;align-items:center;">
+                <div style="flex:1;height:8px;background:rgba(var(--color-fg),0.12);border-radius:9999px;overflow:hidden;">
+                  <div id="upload_bar_create" style="width:0%;height:100%;background:linear-gradient(90deg,#8b5cf6,#a78bfa);transition:width .15s ease;"></div>
+                </div>
+                <span id="upload_pct_create" style="min-width:3rem;text-align:right;font-weight:600;">0%</span>
+              </div>
             </label>
           </div>
         </div>
@@ -145,5 +159,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </form>
     </div>
   </main>
+  <script>
+    (function(){
+      var file = document.querySelector("form input[name='profile_image']");
+      var csrf = document.querySelector("form input[name='csrf']");
+      var hidden = document.getElementById('profile_image_path_create');
+      var wrap = document.getElementById('upload_wrap_create');
+      var bar = document.getElementById('upload_bar_create');
+      var pct = document.getElementById('upload_pct_create');
+      if (!file || !csrf) return;
+      file.addEventListener('change', function(){
+        if (!file.files || !file.files[0]) return;
+        var fd = new FormData();
+        fd.append('csrf', csrf.value);
+        fd.append('file', file.files[0]);
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/vehicles/upload');
+        wrap.style.display = 'flex';
+        bar.style.width = '0%'; pct.textContent = '0%';
+        xhr.upload.onprogress = function(e){ if (e.lengthComputable){ var p = Math.round((e.loaded/e.total)*100); bar.style.width = p+'%'; pct.textContent = p+'%'; }};
+        xhr.onreadystatechange = function(){ if (xhr.readyState===4){ try{ var res = JSON.parse(xhr.responseText||'{}'); if (res.ok && res.path){ hidden.value = res.path; bar.style.width='100%'; pct.textContent='100%'; } }catch(_){} } };
+        xhr.send(fd);
+      });
+    })();
+  </script>
+  <script>
+    (function(){
+      var fr = document.querySelector("input[name='first_registration']");
+      if (!fr) return;
+      fr.addEventListener('input', function(){
+        var v = fr.value.replace(/[^0-9]/g,'');
+        if (v.length > 8) v = v.slice(0,8);
+        var parts = [];
+        if (v.length >= 2) { parts.push(v.slice(0,2)); }
+        if (v.length >= 4) { parts.push(v.slice(2,4)); }
+        if (v.length > 4) { parts.push(v.slice(4)); }
+        if (v.length < 2) { fr.value = v; return; }
+        if (v.length >= 2 && v.length < 4) { fr.value = v.slice(0,2) + '.' + v.slice(2); return; }
+        if (v.length >= 4 && v.length < 5) { fr.value = v.slice(0,2) + '.' + v.slice(2,4) + '.'; return; }
+        fr.value = parts.join('.');
+      });
+    })();
+  </script>
+  <script>
+    (function(){
+      var vin = document.querySelector("input[name='vin']");
+      if (!vin) return;
+      vin.addEventListener('input', function(){
+        var v = vin.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+        // Exclude I, O, Q per VIN standard
+        v = v.replace(/[IOQ]/g,'');
+        if (v.length > 17) v = v.slice(0,17);
+        vin.value = v;
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -25,6 +25,7 @@ $license_plate = trim($_POST['license_plate'] ?? '');
 $make = trim($_POST['make'] ?? '');
 $model = trim($_POST['model'] ?? '');
 $year = trim($_POST['year'] ?? '');
+$first_registration_raw = trim($_POST['first_registration'] ?? '');
 $engine_code = trim($_POST['engine_code'] ?? '');
 $fuel_type = trim($_POST['fuel_type'] ?? 'petrol');
 $odometer_km = trim($_POST['odometer_km'] ?? '');
@@ -40,7 +41,24 @@ if ($fuel_type === '' || !in_array($fuel_type, ['petrol','diesel','electric','hy
 }
 
 $yearInt = null;
-if ($year !== '') {
+// Normalize DD.MM.YYYY if provided; also derive year
+$firstRegistration = null;
+if ($first_registration_raw !== '') {
+    $digits = preg_replace('/[^0-9]/', '', $first_registration_raw);
+    if (strlen($digits) === 8) {
+        $d = substr($digits, 0, 2);
+        $m = substr($digits, 2, 2);
+        $y = substr($digits, 4, 4);
+        if (checkdate((int)$m, (int)$d, (int)$y)) {
+            $firstRegistration = sprintf('%04d-%02d-%02d', (int)$y, (int)$m, (int)$d);
+            $yearInt = (int)$y;
+        } else {
+            $errors[] = 'Erstzulassung ist kein gültiges Datum.';
+        }
+    } else {
+        $errors[] = 'Erstzulassung muss im Format TT.MM.JJJJ eingegeben werden.';
+    }
+} elseif ($year !== '') {
     if (!preg_match('/^\d{4}$/', $year)) {
         $errors[] = 'Bitte ein gültiges Baujahr (YYYY) eingeben.';
     } else {
@@ -68,7 +86,14 @@ if ($purchase_price !== '') {
 
 // Handle optional image upload
 $profileImageRel = null;
-if (!empty($_FILES['profile_image']['name'] ?? '')) {
+$preUploaded = trim($_POST['profile_image_path'] ?? '');
+if ($preUploaded !== '') {
+    // Trust only paths under our uploads directory
+    if (strpos($preUploaded, '/assets/files/uploads/vehicles/') === 0) {
+        $profileImageRel = $preUploaded;
+    }
+}
+if (!$profileImageRel && !empty($_FILES['profile_image']['name'] ?? '')) {
     $file = $_FILES['profile_image'];
     if ($file['error'] !== UPLOAD_ERR_OK) {
         $errors[] = 'Bild-Upload fehlgeschlagen.';
@@ -110,6 +135,7 @@ try {
         odometer_unit ENUM(\'km\',\'mi\') NOT NULL DEFAULT \'km\',
         profile_image VARCHAR(512) NULL,
         purchase_date DATE NULL,
+        first_registration DATE NULL,
         purchase_price DECIMAL(10,2) NULL,
         purchase_mileage_km INT UNSIGNED NULL,
         sale_date DATE NULL,
@@ -123,7 +149,7 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;');
 
     // If image validated, move to uploads
-    if (!empty($_FILES['profile_image']['name'] ?? '') && empty($_SESSION['form_errors'])) {
+    if (!$profileImageRel && !empty($_FILES['profile_image']['name'] ?? '') && empty($_SESSION['form_errors'])) {
         $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $_FILES['profile_image']['tmp_name']);
@@ -176,6 +202,7 @@ try {
         'odometer_km' => $odoInt,
         'color' => $color !== '' ? $color : null,
         'purchase_date' => $purchase_date !== '' ? $purchase_date : null,
+        'first_registration' => $firstRegistration,
         'purchase_price' => $priceDec,
         'notes' => $notes !== '' ? $notes : null,
         'profile_image' => $profileImageRel,
