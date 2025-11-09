@@ -50,8 +50,8 @@ try {
   ]); ?>
   <main class="page-content">
     <div class="container reveal-enter">
-      <div class="card">
-        <h2 class="card-title"><?= e(t('your_vehicles')) ?></h2>
+      <div class="card" style="padding: 1rem 0.5rem 1.25rem; width: max-content; margin-inline: auto; min-width: 600px;">
+        <h2 class="card-title" style="padding-left:1rem;"><?= e(t('your_vehicles')) ?></h2>
         <?php if ($error): ?>
           <div class="alert" style="border-color:var(--danger);color:var(--danger);"><?= e($error) ?></div>
         <?php endif; ?>
@@ -60,12 +60,18 @@ try {
           <a href="/vehicles/create" class="btn-primary"><?= e(t('vehicles_create_cta')) ?></a>
         <?php else: ?>
           <style>
-            @media (min-width: 1px) { .vehicle-tiles { display:grid; gap:1rem; grid-template-columns: 1fr; } }
-            @media (min-width: 640px) { .vehicle-tiles { grid-template-columns: repeat(2, minmax(0,1fr)); } }
-            @media (min-width: 1024px) { .vehicle-tiles { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+            .vehicle-tiles { 
+              display:grid; gap:1rem; 
+              grid-template-columns: repeat(auto-fit, minmax(590px, max-content));
+              justify-content: center;
+              justify-items: center;
+              width: max-content; /* match widest tile */
+              min-width: 590px; /* shared min width for tiles wrapper */
+              margin-inline: auto; /* center within card */
+            }
             .vehicle-tile { 
               display:flex; gap:0.875rem; align-items:center; text-decoration:none; 
-              min-height: 120px; padding: 0.5rem; border-radius: 12px;
+              min-height: 120px; padding: 1.5rem; border-radius: 12px; width: max-content; min-width: 590px;
             }
             .vehicle-thumb { 
               width: 120px; height: 90px; border-radius:12px; 
@@ -74,8 +80,8 @@ try {
             }
             .vehicle-meta { display:flex; flex-direction:column; gap:0.3rem; overflow:hidden; }
             .vehicle-title { font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color: rgb(var(--color-fg)); }
-            .vehicle-sub { color: rgba(var(--color-fg), 0.8); font-size:0.95rem; }
-            .vehicle-sub2 { color: rgba(var(--color-fg), 0.7); font-size:0.9rem; }
+            .vehicle-sub { color: rgba(var(--color-fg), 0.8); font-size:0.95rem; white-space: nowrap; }
+            .vehicle-sub2 { color: rgba(var(--color-fg), 0.7); font-size:0.9rem; white-space: nowrap; }
             /* Ensure all text inside the clickable tile uses foreground color */
             .vehicle-tile, .vehicle-tile * { color: rgb(var(--color-fg)) !important; }
           </style>

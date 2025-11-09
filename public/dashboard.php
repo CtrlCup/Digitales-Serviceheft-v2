@@ -108,27 +108,34 @@ try {
         </div>
       <?php else: ?>
         <?php if (!$hasVehicles): ?>
-          <div class="card">
-            <h2 class="card-title"><?= e(get_time_based_greeting()) ?>, <?= e($user['name'] ?? ($user['username'] ?? ($user['email'] ?? 'User'))) ?></h2>
+          <div class="card" style="padding: 1rem 1.25rem 1.25rem;">
+            <h2 class="card-title" style="padding-left:0.5rem;margin-bottom:0.25rem;">
+              <?= e(get_time_based_greeting()) ?>, <?= e($user['name'] ?? ($user['username'] ?? ($user['email'] ?? 'User'))) ?>
+            </h2>
             <p><?= e(t('dashboard_intro')) ?></p>
             <p style="margin-top:1rem;"><?= e(t('no_vehicles_yet')) ?></p>
             <p><?= e(t('create_first_vehicle_hint')) ?></p>
             <a href="/vehicles/create" class="btn-primary"><?= e(t('vehicles_create_cta')) ?></a>
             </div>
         <?php else: ?>
-          <div class="card">
-            <h2 class="card-title"><?= e(get_time_based_greeting()) ?>, <?= e($user['name'] ?? ($user['username'] ?? ($user['email'] ?? 'User'))) ?></h2>
-            <h3 class="card-title" style="font-size:1.05rem;margin-top:0.25rem;opacity:0.9;"><?= e(t('your_vehicles')) ?>: </h3>
+          <div class="card" style="padding: 1rem 0.5rem 1.25rem; width: max-content; margin-inline: auto; min-width: 600px;">
+            <h2 class="card-title" style="padding-left:0.5rem;margin-bottom:0.125rem;">
+              <?= e(get_time_based_greeting()) ?>, <?= e($user['name'] ?? ($user['username'] ?? ($user['email'] ?? 'User'))) ?>
+            </h2>
+            <h3 class="card-title" style="font-size:1.05rem;margin-top:0;opacity:0.9;padding-left:0.5rem;"><?= e(t('your_vehicles')) ?>: </h3>
             <style>
               .vehicle-tiles { 
                 display: grid; gap: 1rem; 
-                grid-template-columns: repeat(auto-fit, minmax(260px, 560px));
-                justify-content: center; /* center the grid tracks horizontally */
-                justify-items: center;   /* center tile within its track */
+                grid-template-columns: repeat(auto-fit, minmax(590px, max-content));
+                justify-content: center;
+                justify-items: center;
+                width: max-content; /* let the grid match widest tile */
+                min-width: 590px; /* shared min-width with tiles */
+                margin-inline: auto; /* center within card */
               }
               .vehicle-tile { 
                 display:flex; gap:0.875rem; align-items:center; text-decoration:none; 
-                min-height: 120px; padding: 0.5rem; border-radius: 12px; max-width: 560px;
+                min-height: 120px; padding: 1.5rem; border-radius: 12px; width: max-content; min-width: 590px;
               }
               .vehicle-thumb { 
                 width: 120px; height: 90px; border-radius:12px; 
@@ -137,8 +144,8 @@ try {
               }
               .vehicle-meta { display:flex; flex-direction:column; gap:0.3rem; overflow:hidden; }
               .vehicle-title { font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color: rgb(var(--color-fg)); }
-              .vehicle-sub { color: rgba(var(--color-fg), 0.8); font-size:0.95rem; }
-              .vehicle-sub2 { color: rgba(var(--color-fg), 0.7); font-size:0.9rem; }
+              .vehicle-sub { color: rgba(var(--color-fg), 0.8); font-size:0.95rem; white-space: nowrap; }
+              .vehicle-sub2 { color: rgba(var(--color-fg), 0.7); font-size:0.9rem; white-space: nowrap; }
               .vehicle-tile, .vehicle-tile * { color: rgb(var(--color-fg)) !important; }
             </style>
             <div class="vehicle-tiles">
@@ -154,18 +161,18 @@ try {
                         echo e($title !== '' ? $title : t('vehicle'));
                       ?>
                     </div>
-                    <!-- Zeile 2: Kennzeichen · KM-Stand (mit Labels) -->
+                    <!-- Zeile 2: Kennzeichen · KM-Stand (nur Werte) -->
                     <div class="vehicle-sub">
                       <?php 
                         $km = isset($v['odometer_km']) && $v['odometer_km'] !== null ? number_format((int)$v['odometer_km'], 0, ',', '.') . ' km' : '';
                         $lp = trim((string)($v['license_plate'] ?? ''));
                         $parts2 = [];
-                        if ($lp !== '') { $parts2[] = t('license_plate') . ': ' . $lp; }
-                        if ($km !== '') { $parts2[] = t('odometer_km') . ': ' . $km; }
+                        if ($lp !== '') { $parts2[] = $lp; }
+                        if ($km !== '') { $parts2[] = $km; }
                         echo e(implode(' · ', $parts2));
                       ?>
                     </div>
-                    <!-- Zeile 3: HSN/TSN · FIN (mit Labels) -->
+                    <!-- Zeile 3: HSN/TSN · FIN (nur Werte) -->
                     <div class="vehicle-sub2">
                       <?php 
                         $vin = trim((string)($v['vin'] ?? ''));
@@ -173,8 +180,8 @@ try {
                         $tsn = isset($v['tsn']) ? trim((string)$v['tsn']) : '';
                         $hsnTsn = ($hsn !== '' || $tsn !== '') ? ($hsn . '/' . $tsn) : '';
                         $parts = [];
-                        if ($hsnTsn !== '' && $hsnTsn !== '/') { $parts[] = t('hsn') . '/' . t('tsn') . ': ' . $hsnTsn; }
-                        if ($vin !== '') { $parts[] = t('vin') . ': ' . $vin; }
+                        if ($hsnTsn !== '' && $hsnTsn !== '/') { $parts[] = $hsnTsn; }
+                        if ($vin !== '') { $parts[] = $vin; }
                         echo e(implode(' · ', $parts));
                       ?>
                     </div>
