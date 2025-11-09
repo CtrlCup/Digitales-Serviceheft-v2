@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($sent) {
                         $profile_message = t('email_change_requested');
                     } else {
-                        $errors[] = 'E-Mail konnte nicht gesendet werden.';
+                        $errors[] = t('email_send_failed');
                     }
                     $user = current_user(); // reload
                 } else {

@@ -434,13 +434,113 @@ function reset_password_and_email(string $identifier): void {
     }
 }
 
-function delete_user_account(int $userId): void {
+function purge_user_data(int $userId): void {
+    // Delete all data associated with a user across primary DB and vehicles DB, including files
     $pdo = db();
-    
-    // Delete user and all related data (cascading deletes are configured in schema)
-    // Related tables: email_verifications, user_2fa, webauthn_credentials, login_audit
-    $stmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
-    $stmt->execute([$userId]);
+
+    // Primary DB cleanup inside a transaction (best-effort)
+    try {
+        $pdo->beginTransaction();
+
+        // Remove 2FA, passkeys, email tokens, audits
+        try { $pdo->prepare('DELETE FROM user_2fa WHERE user_id = ?')->execute([$userId]); } catch (Throwable $e) {}
+        try { $pdo->prepare('DELETE FROM webauthn_credentials WHERE user_id = ?')->execute([$userId]); } catch (Throwable $e) {}
+        try { $pdo->prepare('DELETE FROM email_verifications WHERE user_id = ?')->execute([$userId]); } catch (Throwable $e) {}
+        try { $pdo->prepare('DELETE FROM email_change_requests WHERE user_id = ?')->execute([$userId]); } catch (Throwable $e) {}
+        try { $pdo->prepare('DELETE FROM login_audit WHERE user_id = ?')->execute([$userId]); } catch (Throwable $e) {}
+
+        // Finally remove user row
+        $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$userId]);
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        // continue to vehicles cleanup regardless
+    }
+
+    // Vehicles DB cleanup (with image deletion)
+    try {
+        $vdb = vehicle_db();
+        $vdb->beginTransaction();
+
+        // Fetch vehicles for user
+        $vs = $vdb->prepare('SELECT id, profile_image FROM vehicles WHERE user_id = ?');
+        $vs->execute([$userId]);
+        $vehicles = $vs->fetchAll() ?: [];
+
+        // Collect files to delete after commit
+        $vehicleImageFiles = [];
+        $documentFiles = [];
+
+        foreach ($vehicles as $veh) {
+            $img = (string)($veh['profile_image'] ?? '');
+            if ($img !== '') { $vehicleImageFiles[] = $img; }
+        }
+
+        // Try to collect document file paths before deleting records
+        try {
+            $docStmt = $vdb->prepare('SELECT file_path FROM documents WHERE vehicle_id = ?');
+            foreach ($vehicles as $veh) {
+                $vid = (int)$veh['id'];
+                try {
+                    $docStmt->execute([$vid]);
+                    $rows = $docStmt->fetchAll() ?: [];
+                    foreach ($rows as $r) {
+                        $fp = (string)($r['file_path'] ?? '');
+                        if ($fp !== '') { $documentFiles[] = $fp; }
+                    }
+                } catch (Throwable $ignored) {}
+            }
+        } catch (Throwable $ignored) {}
+
+        // Delete related tables per vehicle (ignore if tables do not exist)
+        $relatedTables = [
+            'service_entries', 'service_items', 'documents', 'reminders', 'fuel_logs',
+            'parts_inventory', 'inspections', 'notes', 'vehicle_tags'
+        ];
+
+        foreach ($vehicles as $veh) {
+            $vid = (int)$veh['id'];
+            foreach ($relatedTables as $tbl) {
+                try { $vdb->prepare("DELETE FROM `$tbl` WHERE vehicle_id = ?")->execute([$vid]); } catch (Throwable $ignored) {}
+            }
+        }
+
+        // Delete vehicles rows
+        $vdb->prepare('DELETE FROM vehicles WHERE user_id = ?')->execute([$userId]);
+
+        $vdb->commit();
+
+        // After commit, delete files (best effort, with safety checks)
+        // Vehicles images
+        $vehiclesBase = realpath(__DIR__ . '/..' . '/assets/files/uploads/vehicles');
+        foreach ($vehicleImageFiles as $imageRel) {
+            $imageAbs = realpath(__DIR__ . '/..' . '/' . ltrim($imageRel, '/'));
+            if ($vehiclesBase && $imageAbs && strpos($imageAbs, $vehiclesBase) === 0 && is_file($imageAbs)) {
+                @unlink($imageAbs);
+            }
+        }
+
+        // Document files (if using /assets/files/uploads/documents)
+        $docsBase = realpath(__DIR__ . '/..' . '/assets/files/uploads/documents');
+        foreach ($documentFiles as $docRel) {
+            $docAbs = realpath(__DIR__ . '/..' . '/' . ltrim($docRel, '/'));
+            if ($docsBase && $docAbs && strpos($docAbs, $docsBase) === 0 && is_file($docAbs)) {
+                @unlink($docAbs);
+            }
+        }
+    } catch (Throwable $e) {
+        if (isset($vdb) && $vdb instanceof PDO && $vdb->inTransaction()) {
+            $vdb->rollBack();
+        }
+        // swallow to ensure purge continues even if vehicles DB has issues
+    }
+}
+
+function delete_user_account(int $userId): void {
+    purge_user_data($userId);
 }
 
 // ========================================
@@ -794,7 +894,6 @@ function admin_delete_user_account(int $adminId, int $userId): void {
         throw new RuntimeException(t('error_cannot_delete_self'));
     }
     
-    // Lösche den Benutzer (cascading deletes sollten konfiguriert sein)
-    $stmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
-    $stmt->execute([$userId]);
+    // Komplettes Aufräumen inkl. Fahrzeuge/Bilder/Verknüpfungen
+    purge_user_data($userId);
 }

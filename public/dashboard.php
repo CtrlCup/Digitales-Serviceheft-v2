@@ -45,30 +45,38 @@ try {
 
     $uid = (int)($user['id'] ?? 0);
     try {
-        // Try with optional profile_image column
-        $sql = 'SELECT id, make, model, year, license_plate, profile_image FROM vehicles WHERE (user_id = ? OR (? = 0 AND user_id IS NULL)) ORDER BY updated_at DESC';
+        // Try full set incl. VIN/HSN/TSN and optional profile_image
+        $sql = 'SELECT id, make, model, year, vin, hsn, tsn, license_plate, color, odometer_km, profile_image FROM vehicles WHERE (user_id = ? OR (? = 0 AND user_id IS NULL)) ORDER BY updated_at DESC';
         $stmt = $vdb->prepare($sql);
         $stmt->execute([$uid, $uid]);
         $vehicles = $stmt->fetchAll() ?: [];
     } catch (Throwable $inner) {
-        // If unknown column error, retry without profile_image
         if ($inner instanceof PDOException && $inner->getCode() === '42S22') {
-            $sql = 'SELECT id, make, model, year, license_plate FROM vehicles WHERE (user_id = ? OR (? = 0 AND user_id IS NULL)) ORDER BY updated_at DESC';
-            $stmt = $vdb->prepare($sql);
-            $stmt->execute([$uid, $uid]);
-            $vehicles = $stmt->fetchAll() ?: [];
+            try {
+                // Fallback: without profile_image but with VIN/HSN/TSN
+                $sql = 'SELECT id, make, model, year, vin, hsn, tsn, license_plate, color, odometer_km FROM vehicles WHERE (user_id = ? OR (? = 0 AND user_id IS NULL)) ORDER BY updated_at DESC';
+                $stmt = $vdb->prepare($sql);
+                $stmt->execute([$uid, $uid]);
+                $vehicles = $stmt->fetchAll() ?: [];
+            } catch (Throwable $inner2) {
+                if ($inner2 instanceof PDOException && $inner2->getCode() === '42S22') {
+                    // Final fallback: legacy minimal set (no hsn/tsn, no profile_image)
+                    $sql = 'SELECT id, make, model, year, vin, license_plate, color, odometer_km FROM vehicles WHERE (user_id = ? OR (? = 0 AND user_id IS NULL)) ORDER BY updated_at DESC';
+                    $stmt = $vdb->prepare($sql);
+                    $stmt->execute([$uid, $uid]);
+                    $vehicles = $stmt->fetchAll() ?: [];
+                } else {
+                    throw $inner2;
+                }
+            }
         } else {
             throw $inner;
         }
     }
-    // If there is at least one vehicle, show the exact same page as overview
-    if (is_array($vehicles) && count($vehicles) > 0) {
-        header('Location: /overview');
-        exit;
-    }
+    
 } catch (Throwable $e) {
     error_log('Dashboard vehicles load failed: ' . $e->getMessage());
-    $vehicleError = 'Fahrzeugdaten konnten nicht geladen werden.';
+    $vehicleError = t('dashboard_vehicles_load_failed');
 }
 ?><!doctype html>
 <html lang="<?= htmlspecialchars(APP_LOCALE) ?>" class="">
@@ -80,13 +88,12 @@ try {
 </head>
 <body class="page">
   <?php 
-    $showCta = is_array($vehicles) && count($vehicles) === 0;
     render_brand_header([
       'links' => [
+        ['label' => t('vehicles_create_cta'), 'href' => '/vehicles/create', 'icon' => 'car-plus', 'text' => t('vehicles_create_cta')],
         ['label' => t('account_link'), 'href' => '/account/', 'icon' => 'user', 'text' => $user['username'] ?? ''],
         ['label' => t('logout'), 'href' => '/logout', 'icon' => 'logout']
       ],
-      'cta' => $showCta ? ['label' => 'Neues Auto anlegen', 'href' => '/vehicles/create'] : null,
     ]); 
   ?>
   <main class="page-content">
@@ -96,46 +103,80 @@ try {
 
       <?php if ($vehicleError): ?>
         <div class="card" style="border-color: var(--danger);">
-          <h2 class="card-title">Hinweis</h2>
+          <h2 class="card-title"><?= e(t('notice_title')) ?></h2>
           <p><?= e($vehicleError) ?></p>
         </div>
       <?php else: ?>
         <?php if (!$hasVehicles): ?>
           <div class="card">
             <h2 class="card-title"><?= e(get_time_based_greeting()) ?>, <?= e($user['name'] ?? ($user['username'] ?? ($user['email'] ?? 'User'))) ?></h2>
-            <p>Hier wird später dein digitales Serviceheft erscheinen.</p>
-            <p style="margin-top:1rem;">Aktuell hast du kein Fahrzeug angelegt</p>
-            <p>Lege jetzt dein erstes Auto an, um Wartungen und Einträge zu verwalten.</p>
-            <a href="/vehicles/create" class="btn-primary">Neues Auto anlegen</a>
-          </div>
+            <p><?= e(t('dashboard_intro')) ?></p>
+            <p style="margin-top:1rem;"><?= e(t('no_vehicles_yet')) ?></p>
+            <p><?= e(t('create_first_vehicle_hint')) ?></p>
+            <a href="/vehicles/create" class="btn-primary"><?= e(t('vehicles_create_cta')) ?></a>
+            </div>
         <?php else: ?>
           <div class="card">
             <h2 class="card-title"><?= e(get_time_based_greeting()) ?>, <?= e($user['name'] ?? ($user['username'] ?? ($user['email'] ?? 'User'))) ?></h2>
-            <p><?= e(t('dashboard_intro')) ?></p>
-          </div>
-          <div class="card">
-            <h2 class="card-title">Deine Fahrzeuge</h2>
+            <h3 class="card-title" style="font-size:1.05rem;margin-top:0.25rem;opacity:0.9;"><?= e(t('your_vehicles')) ?>: </h3>
             <style>
-              @media (min-width: 1px) { .vehicle-tiles { display:grid; gap:1rem; grid-template-columns: 1fr; } }
-              @media (min-width: 640px) { .vehicle-tiles { grid-template-columns: repeat(2, minmax(0,1fr)); } }
-              @media (min-width: 1024px) { .vehicle-tiles { grid-template-columns: repeat(3, minmax(0,1fr)); } }
-              .vehicle-tile { display:flex; gap:0.75rem; align-items:stretch; text-decoration:none; }
-              .vehicle-thumb { width:96px; height:72px; border-radius:8px; object-fit:cover; background:var(--bg-secondary); flex-shrink:0; }
-              .vehicle-meta { display:flex; flex-direction:column; gap:0.25rem; overflow:hidden; }
+              .vehicle-tiles { 
+                display: grid; gap: 1rem; 
+                grid-template-columns: repeat(auto-fit, minmax(260px, 560px));
+                justify-content: center; /* center the grid tracks horizontally */
+                justify-items: center;   /* center tile within its track */
+              }
+              .vehicle-tile { 
+                display:flex; gap:0.875rem; align-items:center; text-decoration:none; 
+                min-height: 120px; padding: 0.5rem; border-radius: 12px; max-width: 560px;
+              }
+              .vehicle-thumb { 
+                width: 120px; height: 90px; border-radius:12px; 
+                object-fit: cover; object-position: center; 
+                background: var(--bg-secondary); flex-shrink:0; 
+              }
+              .vehicle-meta { display:flex; flex-direction:column; gap:0.3rem; overflow:hidden; }
               .vehicle-title { font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color: rgb(var(--color-fg)); }
               .vehicle-sub { color: rgba(var(--color-fg), 0.8); font-size:0.95rem; }
+              .vehicle-sub2 { color: rgba(var(--color-fg), 0.7); font-size:0.9rem; }
+              .vehicle-tile, .vehicle-tile * { color: rgb(var(--color-fg)) !important; }
             </style>
             <div class="vehicle-tiles">
               <?php foreach ($vehicles as $v): ?>
                 <a href="/vehicles/view?id=<?= e((string)$v['id']) ?>" class="tile card vehicle-tile">
                   <?php $img = (!empty($v['profile_image'] ?? null)) ? $v['profile_image'] : '/assets/files/vehicle-placeholder.svg'; ?>
-                  <img src="<?= e($img) ?>" alt="Fahrzeugbild" class="vehicle-thumb" onerror="this.onerror=null;this.src='/assets/files/vehicle-placeholder.svg'">
+                  <img src="<?= e($img) ?>" alt="<?= e(t('vehicle_image_alt')) ?>" class="vehicle-thumb" onerror="this.onerror=null;this.src='/assets/files/vehicle-placeholder.svg'">
                   <div class="vehicle-meta">
+                    <!-- Zeile 1: Marke Modell -->
                     <div class="vehicle-title">
-                      <?= e(($v['make'] ?? '') . ' ' . ($v['model'] ?? '')) ?>
+                      <?php 
+                        $title = trim(($v['make'] ?? '') . ' ' . ($v['model'] ?? ''));
+                        echo e($title !== '' ? $title : t('vehicle'));
+                      ?>
                     </div>
+                    <!-- Zeile 2: Kennzeichen · KM-Stand (mit Labels) -->
                     <div class="vehicle-sub">
-                      <?= e(($v['year'] ? (string)$v['year'] : '')) ?> <?= e($v['license_plate'] ? '· ' . $v['license_plate'] : '') ?>
+                      <?php 
+                        $km = isset($v['odometer_km']) && $v['odometer_km'] !== null ? number_format((int)$v['odometer_km'], 0, ',', '.') . ' km' : '';
+                        $lp = trim((string)($v['license_plate'] ?? ''));
+                        $parts2 = [];
+                        if ($lp !== '') { $parts2[] = t('license_plate') . ': ' . $lp; }
+                        if ($km !== '') { $parts2[] = t('odometer_km') . ': ' . $km; }
+                        echo e(implode(' · ', $parts2));
+                      ?>
+                    </div>
+                    <!-- Zeile 3: HSN/TSN · FIN (mit Labels) -->
+                    <div class="vehicle-sub2">
+                      <?php 
+                        $vin = trim((string)($v['vin'] ?? ''));
+                        $hsn = isset($v['hsn']) ? trim((string)$v['hsn']) : '';
+                        $tsn = isset($v['tsn']) ? trim((string)$v['tsn']) : '';
+                        $hsnTsn = ($hsn !== '' || $tsn !== '') ? ($hsn . '/' . $tsn) : '';
+                        $parts = [];
+                        if ($hsnTsn !== '' && $hsnTsn !== '/') { $parts[] = t('hsn') . '/' . t('tsn') . ': ' . $hsnTsn; }
+                        if ($vin !== '') { $parts[] = t('vin') . ': ' . $vin; }
+                        echo e(implode(' · ', $parts));
+                      ?>
                     </div>
                   </div>
                 </a>

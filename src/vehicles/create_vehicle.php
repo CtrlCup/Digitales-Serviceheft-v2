@@ -20,6 +20,8 @@ if (!csrf_validate($_POST['csrf'] ?? '')) {
 $user = current_user();
 $uid = (int)($user['id'] ?? 0);
 
+$hsn = trim($_POST['hsn'] ?? '');
+$tsn = trim($_POST['tsn'] ?? '');
 $vin = trim($_POST['vin'] ?? '');
 $license_plate = trim($_POST['license_plate'] ?? '');
 $make = trim($_POST['make'] ?? '');
@@ -34,10 +36,20 @@ $purchase_date = trim($_POST['purchase_date'] ?? '');
 $purchase_price = trim($_POST['purchase_price'] ?? '');
 $notes = trim($_POST['notes'] ?? '');
 
-if ($make === '') { $errors[] = 'Bitte Hersteller angeben.'; }
-if ($model === '') { $errors[] = 'Bitte Modell angeben.'; }
+// Normalize and validate HSN/TSN
+$hsn = preg_replace('/\D/', '', $hsn);
+if ($hsn !== '' && !preg_match('/^\d{1,4}$/', $hsn)) {
+    $errors[] = t('hsn_invalid');
+}
+$tsn = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $tsn));
+if ($tsn !== '' && !preg_match('/^[A-Z0-9]{1,4}$/', $tsn)) {
+    $errors[] = t('tsn_invalid');
+}
+
+if ($make === '') { $errors[] = t('make_required'); }
+if ($model === '') { $errors[] = t('model_required'); }
 if ($fuel_type === '' || !in_array($fuel_type, ['petrol','diesel','electric','hybrid','lpg','cng','hydrogen','other'], true)) {
-    $errors[] = 'Bitte einen gültigen Kraftstofftyp wählen.';
+    $errors[] = t('fuel_type_invalid');
 }
 
 $yearInt = null;
@@ -53,14 +65,14 @@ if ($first_registration_raw !== '') {
             $firstRegistration = sprintf('%04d-%02d-%02d', (int)$y, (int)$m, (int)$d);
             $yearInt = (int)$y;
         } else {
-            $errors[] = 'Erstzulassung ist kein gültiges Datum.';
+            $errors[] = t('first_registration_invalid');
         }
     } else {
-        $errors[] = 'Erstzulassung muss im Format TT.MM.JJJJ eingegeben werden.';
+        $errors[] = t('first_registration_format_invalid');
     }
 } elseif ($year !== '') {
     if (!preg_match('/^\d{4}$/', $year)) {
-        $errors[] = 'Bitte ein gültiges Baujahr (YYYY) eingeben.';
+        $errors[] = t('year_invalid');
     } else {
         $yearInt = (int)$year;
     }
@@ -69,7 +81,7 @@ if ($first_registration_raw !== '') {
 $odoInt = null;
 if ($odometer_km !== '') {
     if (!preg_match('/^\d+$/', $odometer_km)) {
-        $errors[] = 'Kilometerstand muss eine Zahl sein.';
+        $errors[] = t('odometer_invalid');
     } else {
         $odoInt = (int)$odometer_km;
     }
@@ -78,7 +90,7 @@ if ($odometer_km !== '') {
 $priceDec = null;
 if ($purchase_price !== '') {
     if (!preg_match('/^\d+(?:[\.,]\d{1,2})?$/', $purchase_price)) {
-        $errors[] = 'Kaufpreis muss eine Zahl mit bis zu zwei Nachkommastellen sein.';
+        $errors[] = t('purchase_price_invalid');
     } else {
         $priceDec = str_replace(',', '.', $purchase_price);
     }
@@ -96,16 +108,16 @@ if ($preUploaded !== '') {
 if (!$profileImageRel && !empty($_FILES['profile_image']['name'] ?? '')) {
     $file = $_FILES['profile_image'];
     if ($file['error'] !== UPLOAD_ERR_OK) {
-        $errors[] = 'Bild-Upload fehlgeschlagen.';
+        $errors[] = t('image_upload_failed');
     } else {
         $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $file['tmp_name']);
         finfo_close($finfo);
         if (!isset($allowed[$mime])) {
-            $errors[] = 'Nur JPG, PNG oder WEBP sind erlaubt.';
+            $errors[] = t('image_type_invalid');
         } elseif ($file['size'] > 5 * 1024 * 1024) { // 5MB
-            $errors[] = 'Bild darf maximal 5 MB groß sein.';
+            $errors[] = t('image_too_large');
         }
     }
 }
@@ -122,6 +134,8 @@ try {
     $pdo->exec('CREATE TABLE IF NOT EXISTS vehicles (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
         user_id BIGINT UNSIGNED NULL,
+        hsn VARCHAR(16) NULL,
+        tsn VARCHAR(16) NULL,
         vin VARCHAR(64) NULL,
         license_plate VARCHAR(32) NULL,
         make VARCHAR(100) NOT NULL,
@@ -192,6 +206,8 @@ try {
 
     $data = [
         'user_id' => $uid ?: null,
+        'hsn' => ($hsn !== '' ? $hsn : null),
+        'tsn' => ($tsn !== '' ? $tsn : null),
         'vin' => $vin !== '' ? $vin : null,
         'license_plate' => $license_plate !== '' ? $license_plate : null,
         'make' => $make,
@@ -223,11 +239,11 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute($values);
 
-    header('Location: /overview');
+    header('Location: /vehicles/overview');
     exit;
 } catch (Throwable $e) {
     error_log('Vehicle create failed: ' . $e->getMessage());
-    $_SESSION['form_errors'] = ['Fahrzeug konnte nicht gespeichert werden.', 'Technischer Fehler: ' . $e->getMessage()];
+    $_SESSION['form_errors'] = [t('vehicle_save_failed'), t('technical_error_prefix') . ' ' . $e->getMessage()];
     $_SESSION['form_values'] = $_POST;
     header('Location: /vehicles/create');
     exit;

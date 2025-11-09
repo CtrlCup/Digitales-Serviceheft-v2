@@ -29,7 +29,7 @@ try {
         }
     }
 } catch (Throwable $e) {
-    $error = 'Fahrzeuge konnten nicht geladen werden.';
+    $error = t('vehicles_load_failed');
 }
 ?>
 <!doctype html>
@@ -37,7 +37,7 @@ try {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fahrzeugübersicht - <?= e(APP_NAME) ?></title>
+  <title><?= e(t('vehicles_overview_title')) ?> - <?= e(APP_NAME) ?></title>
   <?php render_common_head_links(); ?>
 </head>
 <body class="page">
@@ -46,18 +46,18 @@ try {
       ['label' => t('account_link'), 'href' => '/account/', 'icon' => 'user', 'text' => $user['username'] ?? ''],
       ['label' => t('logout'), 'href' => '/logout', 'icon' => 'logout']
     ],
-    'cta' => ['label' => 'Neues Auto anlegen', 'href' => '/vehicles/create']
+    'cta' => ['label' => t('vehicles_create_cta'), 'href' => '/vehicles/create']
   ]); ?>
   <main class="page-content">
     <div class="container reveal-enter">
       <div class="card">
-        <h2 class="card-title">Deine Fahrzeuge</h2>
+        <h2 class="card-title"><?= e(t('your_vehicles')) ?></h2>
         <?php if ($error): ?>
           <div class="alert" style="border-color:var(--danger);color:var(--danger);"><?= e($error) ?></div>
         <?php endif; ?>
         <?php if (!$vehicles): ?>
-          <p>Noch keine Fahrzeuge vorhanden.</p>
-          <a href="/vehicles/create" class="btn-primary">Neues Auto anlegen</a>
+          <p><?= e(t('no_vehicles_yet')) ?></p>
+          <a href="/vehicles/create" class="btn-primary"><?= e(t('vehicles_create_cta')) ?></a>
         <?php else: ?>
           <style>
             @media (min-width: 1px) { .vehicle-tiles { display:grid; gap:1rem; grid-template-columns: 1fr; } }
@@ -83,24 +83,18 @@ try {
             <?php foreach ($vehicles as $v): ?>
               <?php $img = !empty($v['profile_image'] ?? null) ? $v['profile_image'] : '/assets/files/logo-light.svg'; ?>
               <a class="tile card vehicle-tile" href="/vehicles/view?id=<?= e((string)$v['id']) ?>">
-                <img src="<?= e($img) ?>" alt="Fahrzeugbild" class="vehicle-thumb" onerror="this.onerror=null;this.src='/assets/files/logo-light.svg'">
+                <img src="<?= e($img) ?>" alt="<?= e(t('vehicle_image_alt')) ?>" class="vehicle-thumb" onerror="this.onerror=null;this.src='/assets/files/logo-light.svg'">
                 <div class="vehicle-meta">
                   <div class="vehicle-title">
                     <?= e(($v['make'] ?? '') . ' ' . ($v['model'] ?? '')) ?>
                   </div>
                   <div class="vehicle-sub">
-                    <?= e(($v['year'] ? (string)$v['year'] : '')) ?> <?= e($v['license_plate'] ? '· ' . $v['license_plate'] : '') ?>
-                  </div>
-                  <div class="vehicle-sub2">
-                    <?= e($v['color'] ? $v['color'] : '') ?> <?= e($v['odometer_km'] ? '· ' . number_format((int)$v['odometer_km'], 0, ',', '.') . ' km' : '') ?>
-                  </div>
-                </div>
-              </a>
-            <?php endforeach; ?>
-          </div>
-        <?php endif; ?>
-      </div>
-    </div>
-  </main>
-</body>
-</html>
+                    <?php 
+                      $lp = trim((string)($v['license_plate'] ?? ''));
+                      $km = isset($v['odometer_km']) && $v['odometer_km'] !== null ? number_format((int)$v['odometer_km'], 0, ',', '.') . ' km' : '';
+                      $partsA = [];
+                      if ($lp !== '') { $partsA[] = t('license_plate') . ': ' . $lp; }
+                      if ($km !== '') { $partsA[] = t('odometer_km') . ': ' . $km; }
+                      echo e(implode(' · ', $partsA));
+                    ?>
+                  </div

@@ -8,13 +8,13 @@ if (!is_logged_in()) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: /overview');
+    header('Location: /dashboard');
     exit;
 }
 
 if (!csrf_validate($_POST['csrf'] ?? '')) {
     $_SESSION['form_errors'] = [t('csrf_invalid')];
-    header('Location: /overview');
+    header('Location: /dashboard');
     exit;
 }
 
@@ -22,7 +22,7 @@ $user = current_user();
 $uid = (int)($user['id'] ?? 0);
 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 if ($id <= 0) {
-    header('Location: /overview');
+    header('Location: /dashboard');
     exit;
 }
 
@@ -34,8 +34,8 @@ try {
     $stmt->execute([$id, $uid, $uid]);
     $row = $stmt->fetch();
     if (!$row) {
-        $_SESSION['form_errors'] = ['Fahrzeug wurde nicht gefunden oder Zugriff verweigert.'];
-        header('Location: /overview');
+        $_SESSION['form_errors'] = [t('vehicle_not_found_or_forbidden')];
+        header('Location: /dashboard');
         exit;
     }
     $imageRel = (string)($row['profile_image'] ?? '');
@@ -70,14 +70,14 @@ try {
         }
     }
 
-    header('Location: /overview');
+    header('Location: /dashboard');
     exit;
 } catch (Throwable $e) {
     if ($pdo && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
     error_log('Vehicle delete failed: ' . $e->getMessage());
-    $_SESSION['form_errors'] = ['Fahrzeug konnte nicht gelöscht werden.', 'Technischer Fehler: ' . $e->getMessage()];
-    header('Location: /overview');
+    $_SESSION['form_errors'] = [t('vehicle_delete_failed'), t('technical_error_prefix') . ' ' . $e->getMessage()];
+    header('Location: /dashboard');
     exit;
 }

@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $identifierPrefill = trim($_POST['identifier'] ?? '');
             try {
                 reset_password_and_email($identifierPrefill);
-                $errors[] = 'Neues Passwort wurde per E-Mail gesendet. Bitte Posteingang prüfen.';
+                $errors[] = t('password_reset_sent');
             } catch (Throwable $e) {
                 $errors[] = $e->getMessage();
             }
@@ -261,9 +261,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <?php if ($offerReset && $identifierPrefill !== ''): ?>
             <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-              <button type="submit" name="action" value="reset_password" class="btn-secondary"><?php echo e('Passwort zurücksetzen'); ?></button>
+              <button type="submit" name="action" value="reset_password" class="btn-secondary"><?= e(t('reset_password')) ?></button>
               <span style="font-size:0.875rem;color:var(--text-muted);">
-                <?php echo e('Du erhälst ein neues Passwort per E-Mail.'); ?>
+                <?= e(t('reset_password_info')) ?>
               </span>
             </div>
           <?php endif; ?>

@@ -7,11 +7,10 @@
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Canonicalize vehicles overview path
-  RewriteRule ^vehicles/overview/?$ /overview [R=301,L,NE]
-
-  # Overview clean path maps to vehicles/overview.php
-  RewriteRule ^overview/?$ vehicles/overview.php [L,QSA]
+  # Canonicalize overview to dashboard and map /dashboard
+  RewriteRule ^vehicles/overview/?$ /dashboard [R=301,L,NE]
+  RewriteRule ^overview/?$ /dashboard [R=301,L,NE]
+  RewriteRule ^dashboard/?$ dashboard.php [L,QSA]
 
   # Redirect legacy underscore and .php variants to clean paths (preserve query string)
   RewriteRule ^verify_email(?:\.php)?$ /verify-email [R=301,L,NE]

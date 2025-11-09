@@ -8,7 +8,7 @@ if (!is_logged_in()) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: /overview');
+    header('Location: /dashboard');
     exit;
 }
 
