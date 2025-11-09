@@ -97,4 +97,26 @@ try {
                       if ($km !== '') { $partsA[] = t('odometer_km') . ': ' . $km; }
                       echo e(implode(' · ', $partsA));
                     ?>
-                  </div
+                  </div>
+                  <div class="vehicle-sub2">
+                    <?php 
+                      $vin = trim((string)($v['vin'] ?? ''));
+                      $hsn = isset($v['hsn']) ? trim((string)$v['hsn']) : '';
+                      $tsn = isset($v['tsn']) ? trim((string)$v['tsn']) : '';
+                      $hsnTsn = ($hsn !== '' || $tsn !== '') ? ($hsn . '/' . $tsn) : '';
+                      $partsB = [];
+                      if ($hsnTsn !== '' && $hsnTsn !== '/') { $partsB[] = t('hsn') . '/' . t('tsn') . ': ' . $hsnTsn; }
+                      if ($vin !== '') { $partsB[] = t('vin') . ': ' . $vin; }
+                      echo e(implode(' · ', $partsB));
+                    ?>
+                  </div>
+                </div>
+              </a>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
