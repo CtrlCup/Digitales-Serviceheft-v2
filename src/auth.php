@@ -332,7 +332,7 @@ function require_auth(): void {
 function current_user(): ?array {
     if (!is_logged_in()) return null;
     $pdo = db();
-    $stmt = $pdo->prepare('SELECT id, name, username, email, role, created_at FROM users WHERE id = ? LIMIT 1');
+    $stmt = $pdo->prepare('SELECT id, name, username, email, role, locale, oil_interval_km, oil_interval_years, service_interval_km, service_interval_years, created_at FROM users WHERE id = ? LIMIT 1');
     $stmt->execute([$_SESSION['user_id']]);
     return $stmt->fetch() ?: null;
 }

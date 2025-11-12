@@ -8,6 +8,7 @@ $profile_message = '';
 $password_message = '';
 $security_message = '';
 $language_message = '';
+$interval_message = '';
 $errors = [];
 
 // Get 2FA and Passkeys status
@@ -77,6 +78,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $language_message = t('language_saved_success');
                 // Reload translations for this request
                 load_locale($locale);
+                $user = current_user();
+            } elseif (isset($_POST['action']) && $_POST['action'] === 'intervals') {
+                // Save per-user maintenance intervals
+                $oilKmRaw = (string)($_POST['oil_interval_km'] ?? '');
+                $oilYrRaw = (string)($_POST['oil_interval_years'] ?? '');
+                $srvKmRaw = (string)($_POST['service_interval_km'] ?? '');
+                $srvYrRaw = (string)($_POST['service_interval_years'] ?? '');
+
+                $oilKm = $oilKmRaw !== '' ? (int)preg_replace('/\D+/', '', $oilKmRaw) : null;
+                $oilYr = $oilYrRaw !== '' ? (int)preg_replace('/\D+/', '', $oilYrRaw) : null;
+                $srvKm = $srvKmRaw !== '' ? (int)preg_replace('/\D+/', '', $srvKmRaw) : null;
+                $srvYr = $srvYrRaw !== '' ? (int)preg_replace('/\D+/', '', $srvYrRaw) : null;
+
+                $pdo = db();
+                // Ensure columns exist (safe ALTERs)
+                $cols = array_map(function($c){ return is_array($c)&&isset($c['Field'])?(string)$c['Field']:(string)($c[0]??''); }, $pdo->query('SHOW COLUMNS FROM users')->fetchAll());
+                if (!in_array('oil_interval_km', $cols, true)) { try { $pdo->exec("ALTER TABLE users ADD COLUMN oil_interval_km INT NULL AFTER locale"); } catch (Throwable $__) {} $cols = array_map(function($c){ return is_array($c)&&isset($c['Field'])?(string)$c['Field']:(string)($c[0]??''); }, $pdo->query('SHOW COLUMNS FROM users')->fetchAll()); }
+                if (!in_array('oil_interval_years', $cols, true)) { try { $pdo->exec("ALTER TABLE users ADD COLUMN oil_interval_years INT NULL AFTER oil_interval_km"); } catch (Throwable $__) {} $cols = array_map(function($c){ return is_array($c)&&isset($c['Field'])?(string)$c['Field']:(string)($c[0]??''); }, $pdo->query('SHOW COLUMNS FROM users')->fetchAll()); }
+                if (!in_array('service_interval_km', $cols, true)) { try { $pdo->exec("ALTER TABLE users ADD COLUMN service_interval_km INT NULL AFTER oil_interval_years"); } catch (Throwable $__) {} $cols = array_map(function($c){ return is_array($c)&&isset($c['Field'])?(string)$c['Field']:(string)($c[0]??''); }, $pdo->query('SHOW COLUMNS FROM users')->fetchAll()); }
+                if (!in_array('service_interval_years', $cols, true)) { try { $pdo->exec("ALTER TABLE users ADD COLUMN service_interval_years INT NULL AFTER service_interval_km"); } catch (Throwable $__) {} }
+
+                // Build dynamic update only for changed fields
+                $setParts = [];
+                $params = [':id' => (int)$user['id']];
+
+                // Oil KM: if input empty -> clear only if previously non-null; if non-empty -> set to value
+                if ($oilKmRaw === '') {
+                    if (isset($user['oil_interval_km']) && $user['oil_interval_km'] !== null) {
+                        $setParts[] = 'oil_interval_km = NULL';
+                    }
+                } else {
+                    $setParts[] = 'oil_interval_km = :okm';
+                    $params[':okm'] = $oilKm;
+                }
+
+                // Oil Years
+                if ($oilYrRaw === '') {
+                    if (isset($user['oil_interval_years']) && $user['oil_interval_years'] !== null) {
+                        $setParts[] = 'oil_interval_years = NULL';
+                    }
+                } else {
+                    $setParts[] = 'oil_interval_years = :oy';
+                    $params[':oy'] = $oilYr;
+                }
+
+                // Service KM
+                if ($srvKmRaw === '') {
+                    if (isset($user['service_interval_km']) && $user['service_interval_km'] !== null) {
+                        $setParts[] = 'service_interval_km = NULL';
+                    }
+                } else {
+                    $setParts[] = 'service_interval_km = :skm';
+                    $params[':skm'] = $srvKm;
+                }
+
+                // Service Years
+                if ($srvYrRaw === '') {
+                    if (isset($user['service_interval_years']) && $user['service_interval_years'] !== null) {
+                        $setParts[] = 'service_interval_years = NULL';
+                    }
+                } else {
+                    $setParts[] = 'service_interval_years = :sy';
+                    $params[':sy'] = $srvYr;
+                }
+
+                if (!empty($setParts)) {
+                    $sql = 'UPDATE users SET ' . implode(', ', $setParts) . ', updated_at = NOW() WHERE id = :id';
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute($params);
+                }
+                $interval_message = t('intervals_saved_success');
                 $user = current_user();
             } elseif (isset($_POST['action']) && $_POST['action'] === 'delete_account') {
                 $confirmEmail = trim($_POST['confirm_email'] ?? '');
@@ -187,6 +259,99 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <?php if ($profile_message): ?>
             <div class="alert success-message mt-1">
               <?= e($profile_message) ?>
+            </div>
+          <?php endif; ?>
+        </form>
+        <script>
+          (function(){
+            function formatKm(val){
+              var digits = (val||'').replace(/\D+/g,'');
+              if (!digits) return '';
+              return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            }
+            function attachKmFormatting(input){
+              if (!input) return;
+              input.addEventListener('input', function(){
+                var pos = input.selectionStart;
+                input.value = formatKm(input.value);
+                try { input.setSelectionRange(pos, pos); } catch(e) {}
+              });
+              input.addEventListener('blur', function(){ input.value = formatKm(input.value); });
+            }
+            var oilKm = document.getElementById('oil_interval_km');
+            var srvKm = document.getElementById('service_interval_km');
+            attachKmFormatting(oilKm);
+            attachKmFormatting(srvKm);
+            if (oilKm) oilKm.value = formatKm(oilKm.value);
+            if (srvKm) srvKm.value = formatKm(srvKm.value);
+            // Strip separators on submit of the intervals form only
+            var forms = document.getElementsByTagName('form');
+            for (var i=0;i<forms.length;i++){
+              if (forms[i].querySelector('input[name="action"][value="intervals"]')){
+                forms[i].addEventListener('submit', function(){
+                  if (oilKm) oilKm.value = (oilKm.value||'').replace(/\D+/g,'');
+                  if (srvKm) srvKm.value = (srvKm.value||'').replace(/\D+/g,'');
+                });
+              }
+            }
+          })();
+        </script>
+
+        <!-- Maintenance Intervals -->
+        <?php
+          // Ensure columns exist for display too
+          try {
+            $pdo = db();
+            $cols = array_map(function($c){ return is_array($c)&&isset($c['Field'])?(string)$c['Field']:(string)($c[0]??''); }, $pdo->query('SHOW COLUMNS FROM users')->fetchAll());
+            if (!in_array('oil_interval_km', $cols, true)) { try { $pdo->exec("ALTER TABLE users ADD COLUMN oil_interval_km INT NULL AFTER locale"); } catch (Throwable $__) {} $cols = array_map(function($c){ return is_array($c)&&isset($c['Field'])?(string)$c['Field']:(string)($c[0]??''); }, $pdo->query('SHOW COLUMNS FROM users')->fetchAll()); }
+            if (!in_array('oil_interval_years', $cols, true)) { try { $pdo->exec("ALTER TABLE users ADD COLUMN oil_interval_years INT NULL AFTER oil_interval_km"); } catch (Throwable $__) {} $cols = array_map(function($c){ return is_array($c)&&isset($c['Field'])?(string)$c['Field']:(string)($c[0]??''); }, $pdo->query('SHOW COLUMNS FROM users')->fetchAll()); }
+            if (!in_array('service_interval_km', $cols, true)) { try { $pdo->exec("ALTER TABLE users ADD COLUMN service_interval_km INT NULL AFTER oil_interval_years"); } catch (Throwable $__) {} $cols = array_map(function($c){ return is_array($c)&&isset($c['Field'])?(string)$c['Field']:(string)($c[0]??''); }, $pdo->query('SHOW COLUMNS FROM users')->fetchAll()); }
+            if (!in_array('service_interval_years', $cols, true)) { try { $pdo->exec("ALTER TABLE users ADD COLUMN service_interval_years INT NULL AFTER service_interval_km"); } catch (Throwable $__) {} }
+          } catch (Throwable $__) {}
+          $oilKmVal = isset($user['oil_interval_km']) && $user['oil_interval_km'] !== null ? number_format((int)$user['oil_interval_km'], 0, '', '.') : '';
+          $oilYrVal = isset($user['oil_interval_years']) && $user['oil_interval_years'] !== null ? (string)$user['oil_interval_years'] : '';
+          $srvKmVal = isset($user['service_interval_km']) && $user['service_interval_km'] !== null ? number_format((int)$user['service_interval_km'], 0, '', '.') : '';
+          $srvYrVal = isset($user['service_interval_years']) && $user['service_interval_years'] !== null ? (string)$user['service_interval_years'] : '';
+          $defOilKmPh = number_format((int)DEFAULT_OIL_INTERVAL_KM, 0, '', '.');
+          $defSrvKmPh = number_format((int)DEFAULT_SERVICE_INTERVAL_KM, 0, '', '.');
+        ?>
+        <form method="post" class="card">
+          <h2 class="card-title"><?= e(t('account_intervals_title')) ?></h2>
+          <p style="color:var(--text-muted);margin-bottom:1rem;">&nbsp;<?= e(t('account_intervals_desc')) ?></p>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="intervals">
+          <div class="row">
+            <div class="field">
+              <label>
+                <span><?= e(t('oil_interval_km')) ?></span>
+                <input id="oil_interval_km" type="text" name="oil_interval_km" inputmode="numeric" placeholder="<?= e($defOilKmPh) ?>" value="<?= e($oilKmVal) ?>">
+              </label>
+            </div>
+            <div class="field">
+              <label>
+                <span><?= e(t('oil_interval_years')) ?></span>
+                <input type="number" name="oil_interval_years" min="0" step="1" placeholder="<?= e((string)DEFAULT_OIL_INTERVAL_YEARS) ?>" value="<?= e($oilYrVal) ?>">
+              </label>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>
+                <span><?= e(t('service_interval_km')) ?></span>
+                <input id="service_interval_km" type="text" name="service_interval_km" inputmode="numeric" placeholder="<?= e($defSrvKmPh) ?>" value="<?= e($srvKmVal) ?>">
+              </label>
+            </div>
+            <div class="field">
+              <label>
+                <span><?= e(t('service_interval_years')) ?></span>
+                <input type="number" name="service_interval_years" min="0" step="1" placeholder="<?= e((string)DEFAULT_SERVICE_INTERVAL_YEARS) ?>" value="<?= e($srvYrVal) ?>">
+              </label>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary"><?= e(t('save')) ?></button>
+          <?php if ($interval_message): ?>
+            <div class="alert success-message mt-1">
+              <?= e($interval_message) ?>
             </div>
           <?php endif; ?>
         </form>
@@ -408,6 +573,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         e.preventDefault();
       }
     });
+
+    // Reorder cards: 1) profile, 2) password, 3) intervals, 4) language, 5) security
+    try {
+      var profileForm = document.querySelector('form.card input[name="action"][value="profile"]');
+      var passwordForm = document.querySelector('form.card input[name="action"][value="password"]');
+      var intervalsForm = document.querySelector('form.card input[name="action"][value="intervals"]');
+      var languageForm = document.querySelector('form.card input[name="action"][value="language"]');
+      var securityTitle = <?= json_encode(t('security_section')) ?>;
+      var securityCard = null;
+      var cardTitles = document.querySelectorAll('.card .card-title');
+      for (var i=0;i<cardTitles.length;i++) {
+        if ((cardTitles[i].textContent||'').trim() === securityTitle) {
+          securityCard = cardTitles[i].closest('.card');
+          break;
+        }
+      }
+      var parent = null;
+      if (profileForm) parent = profileForm.closest('.card').parentNode;
+      if (parent && profileForm && passwordForm && intervalsForm && languageForm && securityCard) {
+        var pf = profileForm.closest('.card');
+        var pw = passwordForm.closest('.card');
+        var iv = intervalsForm.closest('.card');
+        var lg = languageForm.closest('.card');
+        var sc = securityCard;
+        parent.insertBefore(pf, parent.firstChild);
+        parent.insertBefore(pw, pf.nextSibling);
+        parent.insertBefore(iv, pw.nextSibling);
+        parent.insertBefore(lg, iv.nextSibling);
+        parent.insertBefore(sc, lg.nextSibling);
+        // adjust spacing for language: slightly closer to previous card
+        lg.style.marginTop = '0.75rem';
+      }
+    } catch (e) { /* no-op */ }
   </script>
 </body>
 </html>

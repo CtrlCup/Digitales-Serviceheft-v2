@@ -28,6 +28,7 @@ if ($id <= 0) {
 
 try {
     $pdo = vehicle_db();
+    $spdo = service_db();
 
     // Verify ownership and get image path
     $stmt = $pdo->prepare('SELECT profile_image FROM vehicles WHERE id = ? AND (user_id = ? OR (? = 0 AND user_id IS NULL)) LIMIT 1');
@@ -41,13 +42,21 @@ try {
     $imageRel = (string)($row['profile_image'] ?? '');
 
     $pdo->beginTransaction();
+    $spdo->beginTransaction();
 
     // Best effort: remove related data if present (ignore missing tables)
-    $relatedTables = [
-        'service_entries', 'service_items', 'documents', 'reminders', 'fuel_logs',
-        'parts_inventory', 'inspections', 'notes', 'vehicle_tags'
+    // Service data lives in service_db()
+    try {
+        // Delete service items via join on service_entries filtered by vehicle_id
+        $spdo->prepare('DELETE si FROM service_items si JOIN service_entries se ON se.id = si.entry_id WHERE se.vehicle_id = ?')->execute([$id]);
+        $spdo->prepare('DELETE FROM service_entries WHERE vehicle_id = ?')->execute([$id]);
+    } catch (Throwable $ignored) {}
+
+    // Other related tables that live with vehicles in vehicle_db()
+    $relatedVehTables = [
+        'documents', 'reminders', 'fuel_logs', 'parts_inventory', 'inspections', 'notes', 'vehicle_tags'
     ];
-    foreach ($relatedTables as $tbl) {
+    foreach ($relatedVehTables as $tbl) {
         try {
             $pdo->prepare("DELETE FROM `$tbl` WHERE vehicle_id = ?")->execute([$id]);
         } catch (Throwable $ignored) {
@@ -59,6 +68,7 @@ try {
     $pdo->prepare('DELETE FROM vehicles WHERE id = ? AND (user_id = ? OR (? = 0 AND user_id IS NULL)) LIMIT 1')->execute([$id, $uid, $uid]);
 
     $pdo->commit();
+    $spdo->commit();
 
     // Delete image file after commit (best effort)
     if (!empty($imageRel)) {
@@ -75,6 +85,9 @@ try {
 } catch (Throwable $e) {
     if ($pdo && $pdo->inTransaction()) {
         $pdo->rollBack();
+    }
+    if (isset($spdo) && $spdo && $spdo->inTransaction()) {
+        $spdo->rollBack();
     }
     error_log('Vehicle delete failed: ' . $e->getMessage());
     $_SESSION['form_errors'] = [t('vehicle_delete_failed'), t('technical_error_prefix') . ' ' . $e->getMessage()];

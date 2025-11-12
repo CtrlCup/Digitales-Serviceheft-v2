@@ -28,6 +28,14 @@ const SMTP_ENCRYPTION = 'tls';        // 'tls', 'ssl', or 'none'
 const SMTP_FROM_EMAIL = 'no-reply@example.com'; // e.g. no-reply@example.com
 const SMTP_FROM_NAME  = APP_NAME;
 
+// Default intervals (examples)
+// Oil change: kilometers and years
+const DEFAULT_OIL_INTERVAL_KM = 15000;   // e.g. 15000 km
+const DEFAULT_OIL_INTERVAL_YEARS = 1;    // e.g. 1 year
+// Service: kilometers and years
+const DEFAULT_SERVICE_INTERVAL_KM = 30000; // e.g. 30000 km
+const DEFAULT_SERVICE_INTERVAL_YEARS = 2;  // e.g. 2 years
+
 // Auth security (example defaults)
 // Maximum number of consecutive failed login attempts before a temporary lockout is enforced
 const LOGIN_MAX_FAILED_ATTEMPTS = 5;
