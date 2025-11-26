@@ -155,7 +155,7 @@ Das Projekt ist bewusst als **Plain-PHP-Anwendung** konzipiert und benötigt kei
 
 1. **Repository klonen oder herunterladen**
    ```bash
-   git clone https://github.com/DEIN-USERNAME/digitales-serviceheft.git
+   git clone https://github.com/CtrlCup/digitales-serviceheft.git
    cd digitales-serviceheft
    ```
 
@@ -524,7 +524,7 @@ WHERE created_at < (NOW() - INTERVAL 90 DAY);
 
 **2. Projekt klonen**
 ```bash
-git clone https://github.com/DEIN-USERNAME/digitales-serviceheft.git
+git clone https://github.com/CtrlCup/digitales-serviceheft.git
 cd digitales-serviceheft
 ```
 
@@ -649,8 +649,8 @@ Pull Requests sind willkommen! Für größere Änderungen bitte zuerst ein Issue
 
 Bei Fragen oder Problemen:
 1. 📖 Lies die [Troubleshooting](#-troubleshooting)-Sektion
-2. 🔍 Durchsuche die [Issues](https://github.com/DEIN-USERNAME/digitales-serviceheft/issues)
-3. 💬 Erstelle ein neues [Issue](https://github.com/DEIN-USERNAME/digitales-serviceheft/issues/new)
+2. 🔍 Durchsuche die [Issues](https://github.com/CtrlCup/digitales-serviceheft/issues)
+3. 💬 Erstelle ein neues [Issue](https://github.com/CtrlCup/digitales-serviceheft/issues/new)
 
 ---
 
