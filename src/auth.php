@@ -332,7 +332,7 @@ function require_auth(): void {
 function current_user(): ?array {
     if (!is_logged_in()) return null;
     $pdo = db();
-    $stmt = $pdo->prepare('SELECT id, name, username, email, role, locale, oil_interval_km, oil_interval_years, service_interval_km, service_interval_years, created_at FROM users WHERE id = ? LIMIT 1');
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
     $stmt->execute([$_SESSION['user_id']]);
     return $stmt->fetch() ?: null;
 }
@@ -603,7 +603,7 @@ function is_owner(): bool {
 function require_admin(): void {
     if (!is_admin()) {
         http_response_code(403);
-        die('Zugriff verweigert. Admin-Berechtigung erforderlich.');
+        die(t('error_admin_required'));
     }
 }
 
@@ -613,7 +613,7 @@ function require_admin(): void {
 function require_owner(): void {
     if (!is_owner()) {
         http_response_code(403);
-        die('Zugriff verweigert. Owner-Berechtigung erforderlich.');
+        die(t('error_owner_required'));
     }
 }
 

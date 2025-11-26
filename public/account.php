@@ -9,6 +9,7 @@ $password_message = '';
 $security_message = '';
 $language_message = '';
 $interval_message = '';
+$reminders_message = '';
 $errors = [];
 
 // Get 2FA and Passkeys status
@@ -70,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // allow-list locales available
                 $allowed = ['de','en'];
                 if (!in_array($locale, $allowed, true)) {
-                    throw new InvalidArgumentException('Invalid locale');
+                    throw new InvalidArgumentException(t('invalid_locale'));
                 }
                 $pdo = db();
                 $stmt = $pdo->prepare('UPDATE users SET locale = ?, updated_at = NOW() WHERE id = ?');
@@ -150,6 +151,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $interval_message = t('intervals_saved_success');
                 $user = current_user();
+            } elseif (isset($_POST['action']) && $_POST['action'] === 'reminders') {
+                // Save reminder settings
+                $reminderEnabled = isset($_POST['reminder_enabled']) ? 1 : 0;
+                $reminderDays = (int)($_POST['reminder_days_advance'] ?? 7);
+                
+                // Validate
+                if ($reminderDays < 1) $reminderDays = 1;
+                if ($reminderDays > 90) $reminderDays = 90;
+                
+                $pdo = db();
+                // Ensure columns exist (safe ALTERs)
+                $cols = array_map(function($c){ return is_array($c)&&isset($c['Field'])?(string)$c['Field']:(string)($c[0]??''); }, $pdo->query('SHOW COLUMNS FROM users')->fetchAll());
+                if (!in_array('reminder_days_advance', $cols, true)) { try { $pdo->exec("ALTER TABLE users ADD COLUMN reminder_days_advance INT DEFAULT 7 AFTER service_interval_years"); } catch (Throwable $__) {} $cols = array_map(function($c){ return is_array($c)&&isset($c['Field'])?(string)$c['Field']:(string)($c[0]??''); }, $pdo->query('SHOW COLUMNS FROM users')->fetchAll()); }
+                if (!in_array('reminder_enabled', $cols, true)) { try { $pdo->exec("ALTER TABLE users ADD COLUMN reminder_enabled TINYINT(1) DEFAULT 1 AFTER reminder_days_advance"); } catch (Throwable $__) {} }
+                
+                $stmt = $pdo->prepare('UPDATE users SET reminder_enabled = ?, reminder_days_advance = ?, updated_at = NOW() WHERE id = ?');
+                $stmt->execute([$reminderEnabled, $reminderDays, (int)$user['id']]);
+                
+                $reminders_message = t('reminder_saved');
+                $user = current_user();
             } elseif (isset($_POST['action']) && $_POST['action'] === 'delete_account') {
                 $confirmEmail = trim($_POST['confirm_email'] ?? '');
                 if ($confirmEmail === $user['email']) {
@@ -179,6 +200,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     'pwd_req_title', 'pwd_req_length', 'pwd_req_uppercase', 'pwd_req_lowercase', 'pwd_req_number', 'pwd_match', 'pwd_no_match',
     'availability_error', 'username_available', 'username_taken', 'email_available', 'email_taken', 'checking_availability'
   ]); ?>
+  <style>
+    .settings-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid var(--border);
+      overflow-x: auto;
+      flex-wrap: wrap;
+    }
+    .tab-button {
+      padding: 0.75rem 1.5rem;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .tab-button:hover {
+      color: var(--text);
+      background: var(--card-bg-hover);
+    }
+    .tab-button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+    /* Smooth fade-in animation for cards */
+    .account-grid > .card:not([style*="display: none"]),
+    .account-grid > form.card:not([style*="display: none"]) {
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @media (max-width: 768px) {
+      .settings-tabs {
+        gap: 0.25rem;
+      }
+      .tab-button {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+      }
+    }
+  </style>
   <script defer src="/assets/js/password-validator.js"></script>
   <script defer src="/assets/js/account-validator.js"></script>
 </head>
@@ -221,6 +297,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           }, 5000);
         </script>
       <?php endif; ?>
+
+      <!-- Tab Navigation -->
+      <div class="settings-tabs">
+        <button type="button" class="tab-button active" data-tab="profile"><?= e(t('profile_section')) ?></button>
+        <button type="button" class="tab-button" data-tab="security"><?= e(t('security_section')) ?></button>
+        <button type="button" class="tab-button" data-tab="settings"><?= e(t('preferences_section')) ?></button>
+        <button type="button" class="tab-button" data-tab="danger"><?= e(t('danger_zone')) ?></button>
+      </div>
 
       <div class="account-grid">
         <?php if (is_admin()): ?>
@@ -356,6 +440,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <?php endif; ?>
         </form>
         
+        <!-- Service Reminders -->
+        <form method="post" class="card">
+          <h2 class="card-title"><?= e(t('reminder_settings')) ?></h2>
+          <p style="color:var(--text-muted);margin-bottom:1rem;"><?= e(t('reminder_days_advance_hint')) ?></p>
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="reminders">
+          
+          <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+            <input type="checkbox" name="reminder_enabled" value="1" <?= (isset($user['reminder_enabled']) && $user['reminder_enabled']) || !isset($user['reminder_enabled']) ? 'checked' : '' ?>>
+            <span><?= e(t('reminder_enabled')) ?></span>
+          </label>
+          
+          <label>
+            <span><?= e(t('reminder_days_advance')) ?></span>
+            <input type="number" name="reminder_days_advance" min="1" max="90" value="<?= e($user['reminder_days_advance'] ?? '7') ?>" required>
+          </label>
+          
+          <button type="submit" class="btn-primary"><?= e(t('save')) ?></button>
+          <?php if ($reminders_message): ?>
+            <div class="alert success-message mt-1">
+              <?= e($reminders_message) ?>
+            </div>
+          <?php endif; ?>
+        </form>
 
         <form method="post" class="card">
           <h2 class="card-title"><?= e(t('password_section')) ?></h2>
@@ -574,38 +682,144 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     });
 
-    // Reorder cards: 1) profile, 2) password, 3) intervals, 4) language, 5) security
-    try {
-      var profileForm = document.querySelector('form.card input[name="action"][value="profile"]');
-      var passwordForm = document.querySelector('form.card input[name="action"][value="password"]');
-      var intervalsForm = document.querySelector('form.card input[name="action"][value="intervals"]');
-      var languageForm = document.querySelector('form.card input[name="action"][value="language"]');
-      var securityTitle = <?= json_encode(t('security_section')) ?>;
-      var securityCard = null;
-      var cardTitles = document.querySelectorAll('.card .card-title');
-      for (var i=0;i<cardTitles.length;i++) {
-        if ((cardTitles[i].textContent||'').trim() === securityTitle) {
-          securityCard = cardTitles[i].closest('.card');
-          break;
+    // ===== TAB SYSTEM =====
+    // Wait for DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Initializing tab system...');
+      
+      const tabButtons = document.querySelectorAll('.tab-button');
+      const allCards = document.querySelectorAll('.account-grid > .card, .account-grid > form.card');
+      
+      console.log('Found', tabButtons.length, 'tabs and', allCards.length, 'cards');
+      
+      // Build mapping: card element -> tab name
+      const cardToTab = new Map();
+      
+      allCards.forEach((card, index) => {
+        // Skip admin card (always visible)
+        if (card.querySelector('a[href="/admin/"]') || card.querySelector('a[href="/admin/users"]')) {
+          console.log('Card', index, '- Admin (always visible)');
+          return;
+        }
+        
+        const actionInput = card.querySelector('input[name="action"]');
+        
+        if (actionInput) {
+          const action = actionInput.value;
+          let tab = null;
+          
+          // Profile tab: profile data + password
+          if (action === 'profile') {
+            tab = 'profile';
+          } else if (action === 'password') {
+            tab = 'profile';
+          }
+          // Security tab: 2FA + passkeys
+          else if (action === 'disable_2fa') {
+            tab = 'security';
+          } else if (action === 'remove_passkey') {
+            tab = 'security';
+          }
+          // Settings tab: language + intervals + reminders
+          else if (action === 'language') {
+            tab = 'settings';
+          } else if (action === 'intervals') {
+            tab = 'settings';
+          } else if (action === 'reminders') {
+            tab = 'settings';
+          }
+          // Danger tab: delete account
+          else if (action === 'delete_account') {
+            tab = 'danger';
+          }
+          
+          if (tab) {
+            cardToTab.set(card, tab);
+            console.log('Card', index, '- action:', action, '-> tab:', tab);
+          }
+        } else {
+          // Cards without action input (like security status display)
+          const title = card.querySelector('.card-title');
+          if (title) {
+            const titleText = title.textContent.trim();
+            const securityTitle = <?= json_encode(t('security_section')) ?>;
+            
+            if (titleText === securityTitle) {
+              cardToTab.set(card, 'security');
+              console.log('Card', index, '- title match -> security');
+            }
+          }
+        }
+      });
+      
+      console.log('Mapped', cardToTab.size, 'cards to tabs');
+      
+      // Function to switch tabs
+      function switchTab(tabName) {
+        console.log('Switching to tab:', tabName);
+        
+        // Update button states
+        tabButtons.forEach(btn => {
+          const isActive = btn.dataset.tab === tabName;
+          if (isActive) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+        
+        // Show/hide cards
+        let visibleCount = 0;
+        allCards.forEach(card => {
+          const cardTab = cardToTab.get(card);
+          
+          // Admin cards are always visible
+          if (!cardTab) {
+            card.style.display = '';
+            return;
+          }
+          
+          if (cardTab === tabName) {
+            card.style.display = '';
+            visibleCount++;
+          } else {
+            card.style.display = 'none';
+          }
+        });
+        
+        console.log('Showing', visibleCount, 'cards for tab:', tabName);
+        
+        // Save to localStorage
+        try {
+          localStorage.setItem('accountActiveTab', tabName);
+        } catch (e) {
+          console.warn('Could not save tab to localStorage:', e);
         }
       }
-      var parent = null;
-      if (profileForm) parent = profileForm.closest('.card').parentNode;
-      if (parent && profileForm && passwordForm && intervalsForm && languageForm && securityCard) {
-        var pf = profileForm.closest('.card');
-        var pw = passwordForm.closest('.card');
-        var iv = intervalsForm.closest('.card');
-        var lg = languageForm.closest('.card');
-        var sc = securityCard;
-        parent.insertBefore(pf, parent.firstChild);
-        parent.insertBefore(pw, pf.nextSibling);
-        parent.insertBefore(iv, pw.nextSibling);
-        parent.insertBefore(lg, iv.nextSibling);
-        parent.insertBefore(sc, lg.nextSibling);
-        // adjust spacing for language: slightly closer to previous card
-        lg.style.marginTop = '0.75rem';
+      
+      // Attach click handlers to tab buttons
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          const tab = this.dataset.tab;
+          switchTab(tab);
+        });
+      });
+      
+      // Restore last tab or default to profile
+      let initialTab = 'profile';
+      try {
+        const savedTab = localStorage.getItem('accountActiveTab');
+        if (savedTab && ['profile', 'security', 'settings', 'danger'].includes(savedTab)) {
+          initialTab = savedTab;
+        }
+      } catch (e) {
+        console.warn('Could not read from localStorage:', e);
       }
-    } catch (e) { /* no-op */ }
+      
+      console.log('Initial tab:', initialTab);
+      switchTab(initialTab);
+    });
   </script>
 </body>
 </html>

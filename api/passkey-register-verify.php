@@ -8,7 +8,7 @@ header('Content-Type: application/json');
 $user = current_user();
 if (!$user) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+    echo json_encode(['success' => false, 'error' => t('unauthorized')]);
     exit;
 }
 
@@ -18,7 +18,7 @@ $data = json_decode($input, true);
 
 if (!$data) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Invalid request']);
+    echo json_encode(['success' => false, 'error' => t('invalid_request')]);
     exit;
 }
 
@@ -26,7 +26,7 @@ try {
     // Verify challenge
     $storedChallenge = get_webauthn_challenge();
     if (!$storedChallenge) {
-        throw new Exception('No challenge found or challenge expired');
+        throw new Exception(t('passkey_no_challenge'));
     }
     
     // Decode client data
@@ -34,7 +34,7 @@ try {
     $clientData = json_decode($clientDataJSON, true);
     
     if (!$clientData) {
-        throw new Exception('Invalid client data');
+        throw new Exception(t('passkey_invalid_client_data'));
     }
     
     // Verify challenge matches
@@ -42,7 +42,7 @@ try {
     
     // Both stored and received challenges are in base64url format
     if (!hash_equals($storedChallenge, $receivedChallenge)) {
-        throw new Exception('Challenge mismatch');
+        throw new Exception(t('passkey_challenge_mismatch'));
     }
     
     // Verify origin
@@ -58,7 +58,7 @@ try {
     }
     
     if ($origin !== $expectedOrigin) {
-        throw new Exception('Origin mismatch: expected ' . $expectedOrigin . ', got ' . $origin);
+        throw new Exception(t('passkey_origin_mismatch'));
     }
     
     // Decode attestation object

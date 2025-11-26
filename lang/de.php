@@ -196,6 +196,13 @@ return [
     'error_permission_denied' => 'Keine Berechtigung für diese Aktion.',
     'error_cannot_demote' => 'Du kannst Benutzer nicht zurückstufen.',
     'error_owner_exists' => 'Es kann nur einen Owner geben.',
+    'forbidden' => 'Verboten',
+    'error_invalid_id' => 'Ungültige ID',
+    'invalid_locale' => 'Ungültige Sprache',
+    'error_admin_required' => 'Zugriff verweigert. Admin-Berechtigung erforderlich.',
+    'error_owner_required' => 'Zugriff verweigert. Owner-Berechtigung erforderlich.',
+    'error_odo_lower_than_current' => 'Der eingegebene Kilometerstand ist niedriger als der aktuelle.',
+    'odo_lower_confirm' => 'Der eingegebene Kilometerstand ist niedriger als der aktuelle. Wirklich übernehmen?',
     
     // General
     'actions' => 'Aktionen',
@@ -412,4 +419,62 @@ return [
     ,'add_item' => 'Position hinzufügen'
     ,'load_more' => 'Mehr laden'
     ,'service_total_spent' => 'Gesamtausgaben (Service)'
+    ,'reminders_settings_title' => 'Service-Erinnerungen'
+    ,'reminders_settings_desc' => 'Erhalte eine E-Mail-Erinnerung, wenn ein Service-Eintrag in einer Woche wieder fällig wird.'
+    ,'reminders_enable_label' => 'E-Mail-Erinnerungen aktivieren'
+    ,'reminders_saved_success' => 'Erinnerungseinstellungen wurden gespeichert.'
+    ,'reminder_email_subject' => 'Erinnerung: Service bald fällig'
+    ,'reminder_email_greeting' => 'Hallo'
+    ,'reminder_email_intro' => 'Die folgenden Service-Einträge werden in einer Woche fällig:'
+    ,'reminder_email_entry' => 'Eintrag'
+    ,'reminder_email_vehicle' => 'Fahrzeug'
+    ,'reminder_email_type' => 'Art'
+    ,'reminder_email_due_on' => 'Fällig am'
+    ,'reminder_email_due_km' => 'Fällig bei (km)'
+    ,'reminder_email_cta' => 'Zur Übersicht'
+    ,'reminder_email_signature' => 'Diese E-Mail wurde automatisch versendet.'
+
+    // SMTP / Mailer
+    ,'smtp_connect_failed' => 'SMTP-Verbindung fehlgeschlagen'
+    ,'smtp_unexpected_response' => 'Unerwartete SMTP-Antwort:'
+    ,'smtp_starttls_failed' => 'STARTTLS fehlgeschlagen'
+
+    // API Passkey errors (server)
+    ,'passkey_no_challenge' => 'Keine Challenge gefunden oder Challenge abgelaufen'
+    ,'passkey_invalid_client_data' => 'Ungültige Client-Daten'
+    ,'passkey_challenge_mismatch' => 'Challenge stimmt nicht überein'
+    ,'passkey_origin_mismatch' => 'Origin stimmt nicht überein'
+    ,'passkey_credential_not_found' => 'Anmeldedatensatz nicht gefunden'
+
+    // Admin-Hilfsskript
+    ,'script_call_with_confirm' => 'Bitte rufe dieses Skript mit ?confirm=1 auf. Danach wieder löschen!'
+    ,'user_exists_email_or_username' => 'Benutzer existiert bereits (E-Mail oder Benutzername bereits vergeben)'
+    ,'user_not_found_after_create' => 'Benutzer konnte nach Erstellung nicht gefunden werden'
+    ,'admin_script_created_user' => 'Benutzer erstellt:'
+    ,'admin_script_self_removed' => 'Dieses Skript wurde erfolgreich entfernt.'
+    ,'admin_script_self_remove_failed' => 'Hinweis: Dieses Skript konnte sich nicht selbst löschen. Bitte per FTP entfernen:'
+    ,'unauthorized' => 'Nicht autorisiert'
+    ,'invalid_request' => 'Ungültige Anfrage'
+
+    // Service Reminders
+    ,'reminder_settings' => 'Erinnerungseinstellungen'
+    ,'reminder_enabled' => 'E-Mail-Erinnerungen aktiviert'
+    ,'reminder_days_advance' => 'Tage im Voraus'
+    ,'reminder_days_advance_hint' => 'Wie viele Tage vor Fälligkeit möchtest du erinnert werden?'
+    ,'reminder_email_subject' => 'Wartungserinnerung für dein Fahrzeug'
+    ,'reminder_email_greeting' => 'Hallo'
+    ,'reminder_email_intro' => 'Dies ist eine Erinnerung, dass folgende Wartungen für deine Fahrzeuge bald fällig sind:'
+    ,'reminder_email_vehicle_label' => 'Fahrzeug'
+    ,'reminder_email_service_type' => 'Art'
+    ,'reminder_email_due_date' => 'Fällig am'
+    ,'reminder_email_due_km' => 'Fällig bei (km)'
+    ,'reminder_email_current_km' => 'Aktueller Stand'
+    ,'reminder_email_footer' => 'Bitte plane die Wartung rechtzeitig ein.'
+    ,'reminder_email_cta' => 'Zu meinen Fahrzeugen'
+    ,'reminder_email_signature' => 'Diese E-Mail wurde automatisch vom Digitalen Serviceheft versendet.'
+    ,'reminder_saved' => 'Erinnerungseinstellungen gespeichert'
+    
+    // Settings page tabs
+    ,'preferences_section' => 'Einstellungen'
+    ,'danger_zone' => 'Gefahrenzone'
 ];

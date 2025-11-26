@@ -17,7 +17,7 @@ try {
     $uid = (int)($user['id'] ?? 0);
     $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
     if ($id <= 0) {
-        throw new InvalidArgumentException('Invalid ID');
+        throw new InvalidArgumentException(t('error_invalid_id'));
     }
 
     $spdo = service_db();
@@ -38,7 +38,7 @@ try {
     $veh = $v->fetch();
     if (!$veh || (int)($veh['user_id'] ?? 0) !== $uid) {
         http_response_code(403);
-        echo 'Forbidden';
+        echo e(t('forbidden'));
         exit;
     }
 

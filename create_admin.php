@@ -6,7 +6,7 @@ require_once __DIR__ . '/src/bootstrap.php';
 // Schutz: erfordert confirm=1 in der URL, um versehentliche Ausführung zu vermeiden.
 if (($_GET['confirm'] ?? '') !== '1') {
     http_response_code(400);
-    echo 'Bitte rufe dieses Script mit ?confirm=1 auf. Danach wieder löschen!';
+    echo e(t('script_call_with_confirm'));
     exit;
 }
 
@@ -23,20 +23,20 @@ try {
     $pdo = db();
     // Basic validation
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        throw new InvalidArgumentException('Ungültige E-Mail');
+        throw new InvalidArgumentException(t('error_invalid_email'));
     }
     if (!preg_match('/^[A-Za-z0-9_.-]{3,32}$/', $username)) {
-        throw new InvalidArgumentException('Ungültiger Benutzername (3-32 Zeichen, A-Z, a-z, 0-9, _.-)');
+        throw new InvalidArgumentException(t('error_invalid_username'));
     }
     if (strlen($password) < 8) {
-        throw new InvalidArgumentException('Passwort zu kurz (min. 8)');
+        throw new InvalidArgumentException(t('password_too_short'));
     }
 
     // Doppelte prüfen (E-Mail / Benutzername)
     $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ? OR username = ? LIMIT 1');
     $stmt->execute([$email, $username]);
     if ($stmt->fetch()) {
-        echo 'Benutzer existiert bereits (E-Mail oder Benutzername bereits vergeben)';
+        echo e(t('user_exists_email_or_username'));
         exit;
     }
     // User anlegen (setzt Rolle anhand ADMIN_EMAIL, wir überschreiben ggf. darunter nochmals explizit)
@@ -47,7 +47,7 @@ try {
     $stmt->execute([$email]);
     $user = $stmt->fetch();
     if (!$user) {
-        throw new RuntimeException('Benutzer konnte nach Erstellung nicht gefunden werden');
+        throw new RuntimeException(t('user_not_found_after_create'));
     }
     $userId = (int)$user['id'];
 
@@ -55,14 +55,14 @@ try {
     $stmt = $pdo->prepare('UPDATE users SET role = ?, locale = ?, timezone = ?, avatar_url = ?, updated_at = NOW() WHERE id = ?');
     $stmt->execute([$role, $locale ?: null, $timezone ?: null, $avatarUrl ?: null, $userId]);
 
-    echo 'Benutzer erstellt: ' . htmlspecialchars($email) . ' (Rolle: ' . htmlspecialchars($role) . '). Bitte Passwort nach dem ersten Login ändern.';
+    echo e(t('admin_script_created_user')) . ' ' . htmlspecialchars($email) . ' (Rolle: ' . htmlspecialchars($role) . ').';
 
     // Datei nach Erfolg selbst löschen
     $self = __FILE__;
     if (@unlink($self)) {
-        echo "\nDieses Skript wurde erfolgreich entfernt.";
+        echo "\n" . e(t('admin_script_self_removed'));
     } else {
-        echo "\nHinweis: Dieses Skript konnte sich nicht selbst löschen. Bitte per FTP entfernen: " . basename($self);
+        echo "\n" . e(t('admin_script_self_remove_failed')) . ' ' . basename($self);
     }
 } catch (Throwable $e) {
     http_response_code(500);

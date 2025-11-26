@@ -129,7 +129,7 @@ function smtp_send(string $toEmail, array $headers, string $body): bool {
     $context = stream_context_create($contextOptions);
     $fp = @stream_socket_client($remote . ':' . $port, $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT, $context);
     if (!$fp) {
-        throw new RuntimeException('SMTP connect failed: ' . $errstr);
+        throw new RuntimeException(t('smtp_connect_failed') . ': ' . $errstr);
     }
     stream_set_timeout($fp, $timeout);
 
@@ -140,7 +140,7 @@ function smtp_send(string $toEmail, array $headers, string $body): bool {
             if (isset($l[3]) && $l[3] !== '-') break; // last line of response
         }
         if (strpos($line, $prefix) !== 0) {
-            throw new RuntimeException('SMTP unexpected response: ' . trim($line));
+            throw new RuntimeException(t('smtp_unexpected_response') . ' ' . trim($line));
         }
     };
 
@@ -154,7 +154,7 @@ function smtp_send(string $toEmail, array $headers, string $body): bool {
         $send('STARTTLS');
         $expect('220');
         if (!stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
-            throw new RuntimeException('STARTTLS failed');
+            throw new RuntimeException(t('smtp_starttls_failed'));
         }
         // EHLO again after STARTTLS
         $send('EHLO ' . (defined('APP_DOMAIN') ? APP_DOMAIN : 'localhost'));

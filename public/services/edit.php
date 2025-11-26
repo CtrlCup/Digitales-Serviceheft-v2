@@ -21,7 +21,7 @@ try {
   $v = $vpdo->prepare('SELECT * FROM vehicles WHERE id = ? LIMIT 1');
   $v->execute([$vehicleId]);
   $vehicle = $v->fetch();
-  if (!$vehicle || (int)($vehicle['user_id'] ?? 0) !== $uid) { http_response_code(403); die('Forbidden'); }
+  if (!$vehicle || (int)($vehicle['user_id'] ?? 0) !== $uid) { http_response_code(403); die(t('forbidden')); }
   $it = $spdo->prepare('SELECT * FROM service_items WHERE entry_id = ? ORDER BY id ASC');
   $it->execute([$entryId]);
   $items = $it->fetchAll() ?: [];
@@ -47,7 +47,7 @@ if (!$error && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $currKm = isset($vehicle['odometer_km']) && $vehicle['odometer_km']!==null ? (int)$vehicle['odometer_km'] : null;
     $confirmLower = isset($_POST['confirm_lower_odo']) && $_POST['confirm_lower_odo'] === '1';
-    if ($odo!==null && $currKm!==null && $odo<$currKm && !$confirmLower) { throw new RuntimeException('Der eingegebene Kilometerstand ist niedriger als der aktuelle.'); }
+    if ($odo!==null && $currKm!==null && $odo<$currKm && !$confirmLower) { throw new RuntimeException(t('error_odo_lower_than_current')); }
 
     if ($type==='service' || $type==='oil_change') {
       $ikm = $type==='oil_change' ? $oilKm : $srvKm; $iy = $type==='oil_change' ? $oilYr : $srvYr;
@@ -152,7 +152,7 @@ if (!$error && $_SERVER['REQUEST_METHOD'] === 'POST') {
     var odo=document.getElementById('odometer_km'); var nx=document.getElementById('next_due_km');
     if(odo) odo.value=(odo.value||'').replace(/\D+/g,''); if(nx) nx.value=(nx.value||'').replace(/\D+/g,'');
     var cur=<?= isset($vehicle['odometer_km'])&&$vehicle['odometer_km']!==null?(int)$vehicle['odometer_km']:0 ?>; var val=odo&&odo.value?parseInt(odo.value,10):null; var c=document.getElementById('confirm_lower_odo');
-    if(val!==null && cur && val<cur){ if(!confirm('Der eingegebene Kilometerstand ist niedriger als der aktuelle. Wirklich übernehmen?')){ if(c) c.value='0'; e.preventDefault(); return false; } if(c) c.value='1'; }
+    if(val!==null && cur && val<cur){ if(!confirm(<?= json_encode(t('odo_lower_confirm')) ?>)){ if(c) c.value='0'; e.preventDefault(); return false; } if(c) c.value='1'; }
   }); }
   var addBtn=document.getElementById('addItemBtn'); var tbody=document.querySelector('#itemsTable tbody');
   addBtn&&addBtn.addEventListener('click',function(){ var tr=document.createElement('tr'); tr.innerHTML='<td><input name="item_label[]" type="text" placeholder="<?= e(t('item_label_ph') ?? 'z.B. Ölfilter') ?>"></td><td><input name="item_amount[]" type="text" inputmode="decimal" style="text-align:right;" placeholder="0,00"></td><td><input name="item_note[]" type="text" placeholder="<?= e(t('item_note_ph') ?? 'optional') ?>"></td><td><button type="button" class="btn-secondary removeRow" style="padding:0.25rem 0.5rem;">&times;</button></td>'; tbody.appendChild(tr); });

@@ -167,6 +167,7 @@ return [
     'vehicle_update_failed' => 'Vehicle could not be updated.',
     'vehicle_delete_failed' => 'Vehicle could not be deleted.',
     'vehicle_not_found_or_forbidden' => 'Vehicle not found or access denied.',
+    'error_odo_lower_than_current' => 'The entered odometer value is lower than the current one.',
     'technical_error_prefix' => 'Technical error:',
     'dashboard_vehicles_load_failed' => 'Vehicle data could not be loaded.',
     'notice_title' => 'Notice',
@@ -223,6 +224,20 @@ return [
     'add_item' => 'Add item',
     'load_more' => 'Load more',
     'service_total_spent' => 'Total spent (service)',
+    'reminders_settings_title' => 'Service reminders',
+    'reminders_settings_desc' => 'Receive an email reminder when a service entry will be due again in one week.',
+    'reminders_enable_label' => 'Enable email reminders',
+    'reminders_saved_success' => 'Reminder settings have been saved.',
+    'reminder_email_subject' => 'Reminder: Service due soon',
+    'reminder_email_greeting' => 'Hello',
+    'reminder_email_intro' => 'The following service entries will be due in one week:',
+    'reminder_email_entry' => 'Entry',
+    'reminder_email_vehicle' => 'Vehicle',
+    'reminder_email_type' => 'Type',
+    'reminder_email_due_on' => 'Due on',
+    'reminder_email_due_km' => 'Due at (km)',
+    'reminder_email_cta' => 'Open overview',
+    'reminder_email_signature' => 'This email was sent automatically.',
 
     // Admin > Test Email
     'test_email_card_title' => 'Send Test Email',
@@ -344,6 +359,11 @@ return [
     'error_permission_denied' => 'Permission denied for this action.',
     'error_cannot_demote' => 'You cannot demote users.',
     'error_owner_exists' => 'There can only be one owner.',
+    'forbidden' => 'Forbidden',
+    'error_invalid_id' => 'Invalid ID',
+    'invalid_locale' => 'Invalid locale',
+    'error_admin_required' => 'Access denied. Admin permission required.',
+    'error_owner_required' => 'Access denied. Owner permission required.',
     
     // General
     'actions' => 'Actions',
@@ -371,5 +391,49 @@ return [
     'email_change_requested' => 'We sent you an email with a link to confirm your new email address.',
     'email_change_success' => 'Your email address has been changed successfully.',
     'email_change_invalid' => 'The confirmation link is invalid or has expired.',
+    
+    // SMTP / Mailer
+    'smtp_connect_failed' => 'SMTP connect failed',
+    'smtp_unexpected_response' => 'SMTP unexpected response:',
+    'smtp_starttls_failed' => 'STARTTLS failed',
+    
+    // API Passkey errors (server)
+    'passkey_no_challenge' => 'No challenge found or challenge expired',
+    'passkey_invalid_client_data' => 'Invalid client data',
+    'passkey_challenge_mismatch' => 'Challenge mismatch',
+    'passkey_origin_mismatch' => 'Origin mismatch',
+    'passkey_credential_not_found' => 'Credential not found',
+    'invalid_request' => 'Invalid request',
+    'unauthorized' => 'Unauthorized',
+    
+    // Admin create script
+    'script_call_with_confirm' => 'Please call this script with ?confirm=1. Then delete it again!',
+    'user_exists_email_or_username' => 'User already exists (email or username already taken)',
+    'user_not_found_after_create' => 'User could not be found after creation',
+    'admin_script_created_user' => 'User created:',
+    'admin_script_self_removed' => 'This script was successfully removed.',
+    'admin_script_self_remove_failed' => 'Note: This script could not delete itself. Please remove via FTP:',
+    
+    // Service Reminders
+    'reminder_settings' => 'Reminder Settings',
+    'reminder_enabled' => 'Email reminders enabled',
+    'reminder_days_advance' => 'Days in advance',
+    'reminder_days_advance_hint' => 'How many days before due date would you like to be reminded?',
+    'reminder_email_subject' => 'Maintenance Reminder for Your Vehicle',
+    'reminder_email_greeting' => 'Hello',
+    'reminder_email_intro' => 'This is a reminder that the following maintenance is due soon for your vehicles:',
+    'reminder_email_vehicle_label' => 'Vehicle',
+    'reminder_email_service_type' => 'Type',
+    'reminder_email_due_date' => 'Due on',
+    'reminder_email_due_km' => 'Due at (km)',
+    'reminder_email_current_km' => 'Current',
+    'reminder_email_footer' => 'Please schedule the maintenance in time.',
+    'reminder_email_cta' => 'View My Vehicles',
+    'reminder_email_signature' => 'This email was sent automatically by your Digital Service Book.',
+    'reminder_saved' => 'Reminder settings saved',
+    
+    // Settings page tabs
+    'preferences_section' => 'Preferences',
+    'danger_zone' => 'Danger Zone',
     
 ];
