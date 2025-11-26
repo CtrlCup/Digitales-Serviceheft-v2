@@ -679,7 +679,7 @@ Dieses Projekt ist Open Source und steht unter der [MIT License](LICENSE).
 ```
 MIT License
 
-Copyright (c) 2024 [Dein Name]
+Copyright (c) 2025 Alex by Gamerfreak_LP [CtrlCup]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -704,7 +704,7 @@ SOFTWARE.
 
 ## 🌟 Credits
 
-Entwickelt mit ❤️ und ☕ von [Dein Name]
+Entwickelt mit ❤️ und ☕ von Alex by Gamerfreak_LP [CtrlCup]
 
 **Built with:**
 - PHP
